@@ -1,0 +1,1492 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#172026">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Workout Prompt">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="description" content="Convert Strava GPX, TCX, CSV, and JSON workout exports into ChatGPT-ready analysis prompts.">
+  <link rel="manifest" href="./workout-prompt.webmanifest">
+  <link rel="icon" href="./workout-prompt-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" sizes="180x180" href="./workout-prompt-icon-180.png">
+  <title>Workout Prompt Builder</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172026;
+      --muted: #60707c;
+      --line: #d8e1e6;
+      --paper: #f7f9f5;
+      --panel: #ffffff;
+      --accent: #e4572e;
+      --accent-2: #1f7a8c;
+      --accent-3: #2e6f45;
+      --focus: #f3b23e;
+      --shadow: 0 18px 48px rgba(23, 32, 38, .12);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      min-height: 100dvh;
+      color: var(--ink);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, .78), rgba(247, 249, 245, .98)),
+        repeating-linear-gradient(90deg, rgba(31, 122, 140, .08) 0 1px, transparent 1px 80px),
+        var(--paper);
+    }
+
+    button, input, textarea, select { font: inherit; }
+
+    .app-shell {
+      width: min(1420px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 24px 0 32px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: minmax(260px, 1fr) auto;
+      gap: 20px;
+      align-items: end;
+      padding: 8px 0 18px;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: clamp(30px, 4vw, 58px);
+      line-height: .98;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 0;
+      max-width: 760px;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    .privacy-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 40px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--accent-3);
+      background: rgba(255, 255, 255, .78);
+      white-space: nowrap;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .workspace {
+      display: grid;
+      gap: 18px;
+      min-width: 0;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .92);
+      box-shadow: var(--shadow);
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 16px 16px 0;
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 17px;
+      letter-spacing: 0;
+    }
+
+    .panel-body { padding: 16px; }
+
+    .drop-zone {
+      display: grid;
+      place-items: center;
+      min-height: 228px;
+      padding: 18px;
+      border: 2px dashed #a8b8bf;
+      border-radius: 8px;
+      background: #fbfcfa;
+      text-align: center;
+      transition: border-color .15s ease, transform .15s ease, background .15s ease;
+    }
+
+    .drop-zone.dragging {
+      border-color: var(--accent-2);
+      background: rgba(31, 122, 140, .08);
+      transform: translateY(-2px);
+    }
+
+    .upload-mark {
+      width: 56px;
+      height: 56px;
+      display: inline-grid;
+      place-items: center;
+      margin-bottom: 12px;
+      border-radius: 50%;
+      background: var(--ink);
+      color: white;
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    .drop-zone strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 19px;
+    }
+
+    .hint {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 14px;
+    }
+
+    .file-input {
+      position: absolute;
+      inline-size: 1px;
+      block-size: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .btn {
+      min-height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      padding: 0 14px;
+      color: white;
+      background: var(--ink);
+      cursor: pointer;
+      transition: transform .12s ease, background .12s ease, border-color .12s ease;
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+    .btn:focus-visible, textarea:focus-visible, input:focus-visible, select:focus-visible {
+      outline: 3px solid rgba(243, 178, 62, .42);
+      outline-offset: 2px;
+    }
+
+    .btn.secondary {
+      color: var(--ink);
+      background: white;
+      border-color: var(--line);
+    }
+
+    .btn.accent { background: var(--accent); }
+    .btn.teal { background: var(--accent-2); }
+
+    .btn:disabled {
+      cursor: not-allowed;
+      opacity: .55;
+      transform: none;
+    }
+
+    .field-stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: var(--ink);
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    select, input[type="text"], textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+      color: var(--ink);
+    }
+
+    select, input[type="text"] {
+      min-height: 40px;
+      padding: 0 10px;
+    }
+
+    textarea {
+      min-height: 92px;
+      padding: 10px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #eef3f0;
+    }
+
+    .segment {
+      min-height: 34px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+    }
+
+    .segment[aria-pressed="true"] {
+      background: white;
+      color: var(--ink);
+      box-shadow: 0 1px 6px rgba(23, 32, 38, .10);
+    }
+
+    .activity-list {
+      display: grid;
+      gap: 10px;
+      max-height: 356px;
+      overflow: auto;
+      padding-right: 2px;
+    }
+
+    .activity-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: white;
+      cursor: pointer;
+    }
+
+    .activity-card.selected {
+      border-color: var(--accent);
+      box-shadow: inset 4px 0 0 var(--accent);
+    }
+
+    .activity-card h3 {
+      margin: 0 0 6px;
+      font-size: 15px;
+      letter-spacing: 0;
+    }
+
+    .activity-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(120px, 1fr));
+      gap: 10px;
+    }
+
+    .metric {
+      min-height: 88px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: white;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 24px;
+      line-height: 1;
+      letter-spacing: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .chart-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .chart-panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+      padding: 10px;
+      min-width: 0;
+    }
+
+    .chart-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 132px;
+    }
+
+    .output-wrap {
+      display: grid;
+      gap: 10px;
+    }
+
+    #promptOutput {
+      min-height: 360px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+      background: #10171b;
+      color: #edf5ef;
+      border-color: #10171b;
+    }
+
+    .status {
+      min-height: 20px;
+      color: var(--accent-3);
+      font-size: 13px;
+    }
+
+    .empty-state {
+      display: grid;
+      place-items: center;
+      min-height: 270px;
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      color: var(--muted);
+      text-align: center;
+      padding: 18px;
+      background: rgba(255, 255, 255, .68);
+    }
+
+    .metric-grid .empty-state {
+      grid-column: 1 / -1;
+      width: 100%;
+    }
+
+    .inline-note {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 980px) {
+      header, main { grid-template-columns: 1fr; }
+      .privacy-pill { justify-self: start; }
+      .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .chart-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 560px) {
+      body { background-size: auto, 56px 56px, auto; }
+      .app-shell {
+        width: min(100% - 20px, 1420px);
+        padding-top: max(14px, env(safe-area-inset-top));
+        padding-bottom: max(24px, env(safe-area-inset-bottom));
+      }
+      h1 { font-size: 34px; }
+      .subtitle { font-size: 15px; }
+      .panel { box-shadow: 0 8px 24px rgba(23, 32, 38, .10); }
+      .drop-zone { min-height: 176px; }
+      .upload-mark {
+        width: 48px;
+        height: 48px;
+        font-size: 25px;
+      }
+      select, input[type="text"] {
+        min-height: 46px;
+        font-size: 16px;
+      }
+      textarea {
+        min-height: 120px;
+        font-size: 16px;
+      }
+      #promptOutput {
+        min-height: 320px;
+        font-size: 12px;
+      }
+      .metric-grid { grid-template-columns: 1fr; }
+      .segmented { grid-template-columns: 1fr; }
+      .button-row .btn {
+        width: 100%;
+        min-height: 48px;
+      }
+      canvas { height: 108px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header>
+      <div>
+        <h1>Workout Prompt Builder</h1>
+        <p class="subtitle">Import Strava activity files, condense the useful numbers, then copy a prompt ChatGPT can use to analyze your running and cycling workouts.</p>
+      </div>
+      <div class="privacy-pill" title="Files are parsed in this browser tab only.">Local files only</div>
+    </header>
+
+    <main>
+      <aside class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Import</h2>
+        </div>
+        <div class="panel-body field-stack">
+          <label class="drop-zone" id="dropZone" for="fileInput">
+            <span>
+              <span class="upload-mark">+</span>
+              <strong>Drop Strava files here</strong>
+              <p class="hint">Works with GPX, TCX, Strava CSV exports, and JSON activity data. FIT files should be exported as GPX or TCX first.</p>
+            </span>
+            <input class="file-input" id="fileInput" type="file" multiple accept=".gpx,.tcx,.csv,.json,.txt,application/json,text/csv,application/xml,text/xml">
+          </label>
+
+          <div class="button-row">
+            <button class="btn accent" id="chooseBtn" type="button">Choose files</button>
+            <button class="btn secondary" id="clearBtn" type="button">Clear</button>
+          </div>
+
+          <label>
+            Analysis focus
+            <select id="analysisFocus">
+              <option value="overall">Overall training analysis</option>
+              <option value="running">Running form, pacing, and fatigue</option>
+              <option value="cycling">Cycling power, climbs, and endurance</option>
+              <option value="recovery">Recovery, heart rate, and load</option>
+              <option value="race">Race preparation</option>
+            </select>
+          </label>
+
+          <label>
+            Your goal
+            <input id="goalInput" type="text" value="Analyze performance, fatigue, pacing, and next steps.">
+          </label>
+
+          <label>
+            Notes for ChatGPT
+            <textarea id="notesInput" placeholder="Example: I felt tired after 8 km, had a headwind, or I am training for a half marathon."></textarea>
+          </label>
+
+          <div>
+            <div class="inline-note">Output size</div>
+            <div class="segmented" role="group" aria-label="Output size">
+              <button class="segment" type="button" data-size="brief" aria-pressed="false">Brief</button>
+              <button class="segment" type="button" data-size="normal" aria-pressed="true">Normal</button>
+              <button class="segment" type="button" data-size="deep" aria-pressed="false">Deep</button>
+            </div>
+          </div>
+
+          <div>
+            <h2 class="panel-title">Activities</h2>
+          </div>
+          <div class="activity-list" id="activityList">
+            <div class="empty-state">Imported workouts will appear here.</div>
+          </div>
+        </div>
+      </aside>
+
+      <section class="workspace">
+        <section class="panel">
+          <div class="panel-header">
+            <h2 class="panel-title">Workout Summary</h2>
+            <span class="inline-note" id="selectedLabel">No activity selected</span>
+          </div>
+          <div class="panel-body">
+            <div class="metric-grid" id="metricGrid">
+              <div class="empty-state">Add a GPX, TCX, CSV, or JSON file to see metrics.</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2 class="panel-title">Signals</h2>
+          </div>
+          <div class="panel-body">
+            <div class="chart-grid">
+              <div class="chart-panel">
+                <div class="chart-title"><span>Pace or speed</span><strong id="speedRange">--</strong></div>
+                <canvas id="speedChart" width="520" height="180"></canvas>
+              </div>
+              <div class="chart-panel">
+                <div class="chart-title"><span>Heart rate</span><strong id="hrRange">--</strong></div>
+                <canvas id="hrChart" width="520" height="180"></canvas>
+              </div>
+              <div class="chart-panel">
+                <div class="chart-title"><span>Elevation</span><strong id="elevationRange">--</strong></div>
+                <canvas id="elevationChart" width="520" height="180"></canvas>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2 class="panel-title">ChatGPT Prompt</h2>
+          </div>
+          <div class="panel-body output-wrap">
+            <textarea id="promptOutput" spellcheck="false" placeholder="Your workout prompt will be generated here."></textarea>
+            <div class="button-row">
+              <button class="btn teal" id="copyBtn" type="button" disabled>Copy prompt</button>
+              <button class="btn secondary" id="downloadBtn" type="button" disabled>Download text</button>
+              <button class="btn secondary" id="selectAllBtn" type="button" disabled>Select all</button>
+            </div>
+            <div class="status" id="status"></div>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const state = {
+      activities: [],
+      selectedId: null,
+      outputSize: "normal"
+    };
+
+    const el = {
+      dropZone: document.getElementById("dropZone"),
+      fileInput: document.getElementById("fileInput"),
+      chooseBtn: document.getElementById("chooseBtn"),
+      clearBtn: document.getElementById("clearBtn"),
+      activityList: document.getElementById("activityList"),
+      metricGrid: document.getElementById("metricGrid"),
+      selectedLabel: document.getElementById("selectedLabel"),
+      promptOutput: document.getElementById("promptOutput"),
+      copyBtn: document.getElementById("copyBtn"),
+      downloadBtn: document.getElementById("downloadBtn"),
+      selectAllBtn: document.getElementById("selectAllBtn"),
+      analysisFocus: document.getElementById("analysisFocus"),
+      goalInput: document.getElementById("goalInput"),
+      notesInput: document.getElementById("notesInput"),
+      status: document.getElementById("status"),
+      speedChart: document.getElementById("speedChart"),
+      hrChart: document.getElementById("hrChart"),
+      elevationChart: document.getElementById("elevationChart"),
+      speedRange: document.getElementById("speedRange"),
+      hrRange: document.getElementById("hrRange"),
+      elevationRange: document.getElementById("elevationRange")
+    };
+
+    const sportWords = {
+      Run: "run",
+      Ride: "ride",
+      VirtualRide: "virtual ride",
+      Walk: "walk",
+      Hike: "hike"
+    };
+
+    el.chooseBtn.addEventListener("click", () => el.fileInput.click());
+    el.fileInput.addEventListener("change", event => handleFiles(event.target.files));
+    el.clearBtn.addEventListener("click", clearAll);
+    el.analysisFocus.addEventListener("change", updateOutput);
+    el.goalInput.addEventListener("input", updateOutput);
+    el.notesInput.addEventListener("input", updateOutput);
+    el.copyBtn.addEventListener("click", copyPrompt);
+    el.downloadBtn.addEventListener("click", downloadPrompt);
+    el.selectAllBtn.addEventListener("click", () => {
+      el.promptOutput.focus();
+      el.promptOutput.select();
+    });
+
+    document.querySelectorAll(".segment").forEach(button => {
+      button.addEventListener("click", () => {
+        state.outputSize = button.dataset.size;
+        document.querySelectorAll(".segment").forEach(item => {
+          item.setAttribute("aria-pressed", String(item === button));
+        });
+        updateOutput();
+      });
+    });
+
+    ["dragenter", "dragover"].forEach(type => {
+      el.dropZone.addEventListener(type, event => {
+        event.preventDefault();
+        el.dropZone.classList.add("dragging");
+      });
+    });
+
+    ["dragleave", "drop"].forEach(type => {
+      el.dropZone.addEventListener(type, event => {
+        event.preventDefault();
+        el.dropZone.classList.remove("dragging");
+      });
+    });
+
+    el.dropZone.addEventListener("drop", event => handleFiles(event.dataTransfer.files));
+
+    async function handleFiles(fileList) {
+      const files = Array.from(fileList || []);
+      if (!files.length) return;
+      setStatus(`Reading ${files.length} file${files.length === 1 ? "" : "s"}...`);
+      const imported = [];
+      const errors = [];
+
+      for (const file of files) {
+        try {
+          const text = await file.text();
+          const parsed = parseFile(file, text);
+          imported.push(...parsed);
+        } catch (error) {
+          errors.push(`${file.name}: ${error.message}`);
+        }
+      }
+
+      state.activities.push(...imported);
+      if (!state.selectedId && state.activities[0]) state.selectedId = state.activities[0].id;
+      render();
+      if (errors.length) {
+        setStatus(`Imported ${imported.length} activity record${imported.length === 1 ? "" : "s"}. Could not read: ${errors.join("; ")}`);
+      } else {
+        setStatus(`Imported ${imported.length} activity record${imported.length === 1 ? "" : "s"}.`);
+      }
+      el.fileInput.value = "";
+    }
+
+    function parseFile(file, text) {
+      const name = file.name || "workout";
+      const lower = name.toLowerCase();
+      const trimmed = text.trim();
+      if (!trimmed) throw new Error("file is empty");
+      if (lower.endsWith(".gpx") || trimmed.startsWith("<gpx")) return [parseGpx(name, trimmed)];
+      if (lower.endsWith(".tcx") || trimmed.includes("<TrainingCenterDatabase")) return [parseTcx(name, trimmed)];
+      if (lower.endsWith(".json") || trimmed.startsWith("{") || trimmed.startsWith("[")) return parseJson(name, trimmed);
+      if (lower.endsWith(".csv") || looksLikeCsv(trimmed)) return parseCsvActivities(name, trimmed);
+      throw new Error("unsupported format");
+    }
+
+    function parseGpx(fileName, text) {
+      const doc = parseXml(text);
+      const points = Array.from(doc.querySelectorAll("trkpt, rtept")).map(point => {
+        const lat = numberOrNull(point.getAttribute("lat"));
+        const lon = numberOrNull(point.getAttribute("lon"));
+        return {
+          time: textOf(point, "time"),
+          lat,
+          lon,
+          ele: numberOrNull(textOf(point, "ele")),
+          hr: numberOrNull(findExtensionText(point, ["hr", "gpxtpx\\:hr"])),
+          cadence: numberOrNull(findExtensionText(point, ["cad", "gpxtpx\\:cad"])),
+          power: numberOrNull(findExtensionText(point, ["power", "gpxdata\\:power"])),
+          distance: null
+        };
+      }).filter(point => point.lat !== null && point.lon !== null);
+
+      enrichPoints(points);
+      const sport = inferSport(fileName, textOf(doc, "type") || "Workout");
+      return buildActivity({
+        fileName,
+        format: "GPX",
+        sport,
+        name: textOf(doc, "name") || stripExtension(fileName),
+        points,
+        source: "Strava GPX or compatible export"
+      });
+    }
+
+    function parseTcx(fileName, text) {
+      const doc = parseXml(text);
+      const activity = doc.querySelector("Activity");
+      const sport = normalizeSport(activity?.getAttribute("Sport") || "Workout");
+      const points = Array.from(doc.querySelectorAll("Trackpoint")).map(point => {
+        const lat = numberOrNull(textOf(point, "LatitudeDegrees"));
+        const lon = numberOrNull(textOf(point, "LongitudeDegrees"));
+        return {
+          time: textOf(point, "Time"),
+          lat,
+          lon,
+          ele: numberOrNull(textOf(point, "AltitudeMeters")),
+          distance: numberOrNull(textOf(point, "DistanceMeters")),
+          hr: numberOrNull(textOf(point, "HeartRateBpm Value")),
+          cadence: numberOrNull(textOf(point, "Cadence")),
+          speed: numberOrNull(findExtensionText(point, ["ns3\\:Speed", "TPX Speed", "Speed"])),
+          power: numberOrNull(findExtensionText(point, ["ns3\\:Watts", "Watts"]))
+        };
+      }).filter(point => point.time || point.lat !== null || point.distance !== null);
+
+      enrichPoints(points);
+      return buildActivity({
+        fileName,
+        format: "TCX",
+        sport,
+        name: stripExtension(fileName),
+        points,
+        source: "Strava TCX or compatible export"
+      });
+    }
+
+    function parseJson(fileName, text) {
+      const data = JSON.parse(text);
+      const records = Array.isArray(data) ? data : [data];
+      return records.map((record, index) => {
+        const points = pointsFromJson(record);
+        enrichPoints(points);
+        return buildActivity({
+          fileName,
+          format: "JSON",
+          sport: normalizeSport(record.type || record.sport_type || record.activity_type || "Workout"),
+          name: record.name || `${stripExtension(fileName)} ${index + 1}`,
+          points,
+          source: "JSON activity or stream data",
+          summary: summaryFromObject(record)
+        });
+      });
+    }
+
+    function pointsFromJson(record) {
+      if (Array.isArray(record.points)) return record.points.map(normalizePoint);
+      if (Array.isArray(record.streams?.time)) {
+        const times = record.streams.time;
+        return times.map((seconds, index) => normalizePoint({
+          seconds,
+          lat: record.streams.latlng?.[index]?.[0],
+          lon: record.streams.latlng?.[index]?.[1],
+          ele: record.streams.altitude?.[index],
+          distance: record.streams.distance?.[index],
+          hr: record.streams.heartrate?.[index],
+          cadence: record.streams.cadence?.[index],
+          power: record.streams.watts?.[index],
+          speed: record.streams.velocity_smooth?.[index]
+        }));
+      }
+      return [];
+    }
+
+    function parseCsvActivities(fileName, text) {
+      const rows = parseCsv(text);
+      if (rows.length < 2) throw new Error("CSV has no activity rows");
+      const headers = rows[0].map(header => header.trim());
+      const output = [];
+      rows.slice(1).forEach((row, index) => {
+        if (!row.some(cell => String(cell).trim())) return;
+        const record = Object.fromEntries(headers.map((header, i) => [header, row[i] || ""]));
+        output.push(buildActivity({
+          fileName,
+          format: "CSV",
+          sport: normalizeSport(pick(record, ["Activity Type", "Type", "Sport", "sport_type"]) || "Workout"),
+          name: pick(record, ["Activity Name", "Name", "Title"]) || `${stripExtension(fileName)} ${index + 1}`,
+          points: [],
+          source: "Strava CSV activity export",
+          summary: summaryFromCsv(record)
+        }));
+      });
+      return output;
+    }
+
+    function buildActivity({ fileName, format, sport, name, points, source, summary = {} }) {
+      const stats = computeStats(points, summary);
+      return {
+        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        fileName,
+        format,
+        sport,
+        name,
+        source,
+        points,
+        stats,
+        segments: segmentActivity(points, stats),
+        samples: samplePoints(points, state.outputSize === "deep" ? 72 : 40)
+      };
+    }
+
+    function computeStats(points, summary) {
+      const first = points[0] || {};
+      const last = points[points.length - 1] || {};
+      const durationSec = summary.durationSec ?? secondsBetween(first.time, last.time) ?? inferDuration(points);
+      const distanceMeters = summary.distanceMeters ?? distanceFromPoints(points);
+      const elevationGain = summary.elevationGain ?? elevationGainFromPoints(points);
+      const speeds = cleanNumbers(points.map(point => point.speed));
+      const hrs = cleanNumbers(points.map(point => point.hr));
+      const cadences = cleanNumbers(points.map(point => point.cadence));
+      const powers = cleanNumbers(points.map(point => point.power));
+      const avgSpeed = summary.avgSpeed ?? mean(speeds) ?? (distanceMeters && durationSec ? distanceMeters / durationSec : null);
+      return {
+        date: summary.date || first.time || null,
+        distanceMeters,
+        durationSec,
+        movingTimeSec: summary.movingTimeSec ?? durationSec,
+        elevationGain,
+        avgSpeed,
+        maxSpeed: summary.maxSpeed ?? max(speeds),
+        avgHr: summary.avgHr ?? mean(hrs),
+        maxHr: summary.maxHr ?? max(hrs),
+        avgCadence: summary.avgCadence ?? mean(cadences),
+        avgPower: summary.avgPower ?? mean(powers),
+        maxPower: summary.maxPower ?? max(powers),
+        calories: summary.calories ?? null,
+        pointCount: points.length,
+        start: first.time || null,
+        end: last.time || null
+      };
+    }
+
+    function enrichPoints(points) {
+      let cumulative = 0;
+      for (let i = 0; i < points.length; i += 1) {
+        const current = points[i];
+        const previous = points[i - 1];
+        current.timestamp = current.time ? Date.parse(current.time) : null;
+        if (current.distance === null || current.distance === undefined) {
+          if (previous && validCoord(previous) && validCoord(current)) {
+            cumulative += haversine(previous.lat, previous.lon, current.lat, current.lon);
+          }
+          current.distance = cumulative;
+        } else {
+          cumulative = current.distance;
+        }
+        if (!current.speed && previous && current.timestamp && previous.timestamp) {
+          const deltaTime = (current.timestamp - previous.timestamp) / 1000;
+          const deltaDistance = current.distance - previous.distance;
+          if (deltaTime > 0 && deltaDistance >= 0) current.speed = deltaDistance / deltaTime;
+        }
+      }
+    }
+
+    function segmentActivity(points, stats) {
+      if (!points.length || !stats.distanceMeters) return [];
+      const targetSegments = Math.min(8, Math.max(4, Math.floor(stats.distanceMeters / 1000)));
+      const segmentDistance = stats.distanceMeters / targetSegments;
+      const segments = [];
+      for (let i = 0; i < targetSegments; i += 1) {
+        const start = i * segmentDistance;
+        const end = (i + 1) * segmentDistance;
+        const inSegment = points.filter(point => point.distance >= start && point.distance <= end);
+        if (!inSegment.length) continue;
+        const first = inSegment[0];
+        const last = inSegment[inSegment.length - 1];
+        const duration = secondsBetween(first.time, last.time);
+        const distance = Math.max(0, last.distance - first.distance);
+        segments.push({
+          segment: i + 1,
+          distanceKm: round(distance / 1000, 2),
+          duration: formatDuration(duration),
+          pace: distance && duration ? formatPace(duration / (distance / 1000)) : null,
+          avgHr: round(mean(cleanNumbers(inSegment.map(point => point.hr))), 0),
+          avgPower: round(mean(cleanNumbers(inSegment.map(point => point.power))), 0),
+          elevationChangeM: round((last.ele || 0) - (first.ele || 0), 0)
+        });
+      }
+      return segments;
+    }
+
+    function samplePoints(points, limit) {
+      if (!points.length) return [];
+      const step = Math.max(1, Math.ceil(points.length / limit));
+      return points.filter((_, index) => index % step === 0).map(point => ({
+        t: point.time ? new Date(point.time).toISOString() : null,
+        km: round((point.distance || 0) / 1000, 2),
+        pace_min_per_km: point.speed ? round(1000 / point.speed / 60, 2) : null,
+        speed_kmh: point.speed ? round(point.speed * 3.6, 1) : null,
+        elevation_m: round(point.ele, 0),
+        hr: round(point.hr, 0),
+        cadence: round(point.cadence, 0),
+        power: round(point.power, 0)
+      }));
+    }
+
+    function render() {
+      renderActivityList();
+      renderSelected();
+      updateOutput();
+    }
+
+    function renderActivityList() {
+      if (!state.activities.length) {
+        el.activityList.innerHTML = '<div class="empty-state">Imported workouts will appear here.</div>';
+        return;
+      }
+      el.activityList.innerHTML = "";
+      state.activities.forEach(activity => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `activity-card${activity.id === state.selectedId ? " selected" : ""}`;
+        button.innerHTML = `
+          <h3>${escapeHtml(activity.name)}</h3>
+          <div class="activity-meta">
+            <span>${escapeHtml(activity.sport)}</span>
+            <span>${formatDistance(activity.stats.distanceMeters)}</span>
+            <span>${formatDuration(activity.stats.durationSec)}</span>
+            <span>${escapeHtml(activity.format)}</span>
+          </div>`;
+        button.addEventListener("click", () => {
+          state.selectedId = activity.id;
+          render();
+        });
+        el.activityList.appendChild(button);
+      });
+    }
+
+    function renderSelected() {
+      const activity = selectedActivity();
+      if (!activity) {
+        el.selectedLabel.textContent = "No activity selected";
+        el.metricGrid.innerHTML = '<div class="empty-state">Add a GPX, TCX, CSV, or JSON file to see metrics.</div>';
+        clearCharts();
+        return;
+      }
+
+      el.selectedLabel.textContent = `${activity.name} · ${activity.format}`;
+      const metrics = [
+        ["Distance", formatDistance(activity.stats.distanceMeters)],
+        ["Duration", formatDuration(activity.stats.durationSec)],
+        ["Avg pace", formatPaceForActivity(activity)],
+        ["Elevation gain", formatMeters(activity.stats.elevationGain)],
+        ["Avg heart rate", activity.stats.avgHr ? `${round(activity.stats.avgHr, 0)} bpm` : "--"],
+        ["Avg power", activity.stats.avgPower ? `${round(activity.stats.avgPower, 0)} W` : "--"],
+        ["Avg cadence", activity.stats.avgCadence ? `${round(activity.stats.avgCadence, 0)} rpm` : "--"],
+        ["Samples", activity.stats.pointCount ? String(activity.stats.pointCount) : "summary only"]
+      ];
+
+      el.metricGrid.innerHTML = metrics.map(([label, value]) => `
+        <div class="metric">
+          <span>${escapeHtml(label)}</span>
+          <strong>${escapeHtml(value)}</strong>
+        </div>`).join("");
+
+      drawCharts(activity);
+    }
+
+    function updateOutput() {
+      const activity = selectedActivity();
+      const hasActivity = Boolean(activity);
+      el.copyBtn.disabled = !hasActivity;
+      el.downloadBtn.disabled = !hasActivity;
+      el.selectAllBtn.disabled = !hasActivity;
+      el.promptOutput.value = hasActivity ? buildPrompt(activity) : "";
+    }
+
+    function buildPrompt(activity) {
+      const focus = el.analysisFocus.options[el.analysisFocus.selectedIndex].text;
+      const goal = el.goalInput.value.trim();
+      const notes = el.notesInput.value.trim();
+      const samples = samplePoints(activity.points, state.outputSize === "deep" ? 72 : 40);
+      const includeSamples = state.outputSize !== "brief" && samples.length;
+      const includeSegments = state.outputSize === "deep" && activity.segments.length;
+      const payload = {
+        activity: {
+          name: activity.name,
+          sport: activity.sport,
+          source: activity.source,
+          file: activity.fileName,
+          date: activity.stats.date,
+          metrics: {
+            distance_km: round(activity.stats.distanceMeters / 1000, 2),
+            duration: formatDuration(activity.stats.durationSec),
+            moving_time: formatDuration(activity.stats.movingTimeSec),
+            average_pace: formatPaceForActivity(activity),
+            average_speed_kmh: round(activity.stats.avgSpeed * 3.6, 1),
+            max_speed_kmh: round(activity.stats.maxSpeed * 3.6, 1),
+            elevation_gain_m: round(activity.stats.elevationGain, 0),
+            average_heart_rate_bpm: round(activity.stats.avgHr, 0),
+            max_heart_rate_bpm: round(activity.stats.maxHr, 0),
+            average_cadence_rpm: round(activity.stats.avgCadence, 0),
+            average_power_watts: round(activity.stats.avgPower, 0),
+            max_power_watts: round(activity.stats.maxPower, 0),
+            calories: round(activity.stats.calories, 0)
+          },
+          data_quality: dataQuality(activity)
+        }
+      };
+      if (includeSegments) payload.activity.segments = activity.segments;
+      if (includeSamples) payload.activity.condensed_samples = samples;
+
+      const questions = [
+        "What does this workout suggest about pacing, endurance, fatigue, and execution?",
+        "What should I do differently in the next similar workout?",
+        "Give practical recommendations for training, recovery, and progression."
+      ];
+
+      return [
+        "Act as an experienced endurance coach for running and cycling.",
+        `Analysis focus: ${focus}.`,
+        goal ? `My goal: ${goal}` : "",
+        notes ? `Context notes: ${notes}` : "",
+        "",
+        "Please analyze this workout using the data below. Be specific, separate observations from recommendations, and mention any data limitations.",
+        "",
+        "Questions to answer:",
+        ...questions.map(question => `- ${question}`),
+        "",
+        "Workout data:",
+        JSON.stringify(payload, null, 2)
+      ].filter(line => line !== "").join("\n");
+    }
+
+    function drawCharts(activity) {
+      const points = activity.points;
+      const speed = points.map(point => point.speed ? point.speed * 3.6 : null);
+      const hr = points.map(point => point.hr);
+      const elevation = points.map(point => point.ele);
+      drawLine(el.speedChart, speed, "#e4572e");
+      drawLine(el.hrChart, hr, "#c73e57");
+      drawLine(el.elevationChart, elevation, "#1f7a8c");
+      el.speedRange.textContent = rangeLabel(speed, "km/h");
+      el.hrRange.textContent = rangeLabel(hr, "bpm");
+      el.elevationRange.textContent = rangeLabel(elevation, "m");
+    }
+
+    function drawLine(canvas, values, color) {
+      const ctx = canvas.getContext("2d");
+      const width = canvas.width;
+      const height = canvas.height;
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = "#fbfcfa";
+      ctx.fillRect(0, 0, width, height);
+      ctx.strokeStyle = "#d8e1e6";
+      ctx.lineWidth = 1;
+      for (let i = 1; i < 4; i += 1) {
+        const y = (height / 4) * i;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+      const clean = values.map(value => Number.isFinite(value) ? value : null);
+      const nums = clean.filter(value => value !== null);
+      if (nums.length < 2) {
+        ctx.fillStyle = "#60707c";
+        ctx.font = "15px system-ui, sans-serif";
+        ctx.fillText("No stream data", 18, height / 2);
+        return;
+      }
+      const minValue = Math.min(...nums);
+      const maxValue = Math.max(...nums);
+      const spread = maxValue - minValue || 1;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 3;
+      ctx.lineJoin = "round";
+      ctx.beginPath();
+      let started = false;
+      clean.forEach((value, index) => {
+        if (value === null) return;
+        const x = (index / (clean.length - 1)) * width;
+        const y = height - ((value - minValue) / spread) * (height - 22) - 11;
+        if (!started) {
+          ctx.moveTo(x, y);
+          started = true;
+        } else {
+          ctx.lineTo(x, y);
+        }
+      });
+      ctx.stroke();
+    }
+
+    function clearCharts() {
+      [el.speedChart, el.hrChart, el.elevationChart].forEach(canvas => {
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      });
+      el.speedRange.textContent = "--";
+      el.hrRange.textContent = "--";
+      el.elevationRange.textContent = "--";
+    }
+
+    async function copyPrompt() {
+      try {
+        await navigator.clipboard.writeText(el.promptOutput.value);
+        setStatus("Prompt copied.");
+      } catch {
+        el.promptOutput.focus();
+        el.promptOutput.select();
+        setStatus("Prompt selected. Use your normal copy shortcut.");
+      }
+    }
+
+    function downloadPrompt() {
+      const activity = selectedActivity();
+      if (!activity) return;
+      const blob = new Blob([el.promptOutput.value], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${slug(activity.name)}-chatgpt-prompt.txt`;
+      link.click();
+      URL.revokeObjectURL(url);
+      setStatus("Prompt text downloaded.");
+    }
+
+    function clearAll() {
+      state.activities = [];
+      state.selectedId = null;
+      render();
+      setStatus("Cleared.");
+    }
+
+    function selectedActivity() {
+      return state.activities.find(activity => activity.id === state.selectedId) || null;
+    }
+
+    function parseXml(text) {
+      const doc = new DOMParser().parseFromString(text, "application/xml");
+      const error = doc.querySelector("parsererror");
+      if (error) throw new Error("XML could not be parsed");
+      return doc;
+    }
+
+    function textOf(root, selector) {
+      if (!root) return "";
+      return root.querySelector(selector)?.textContent?.trim() || "";
+    }
+
+    function findExtensionText(root, selectors) {
+      for (const selector of selectors) {
+        const value = textOf(root, selector);
+        if (value) return value;
+      }
+      return "";
+    }
+
+    function parseCsv(text) {
+      const rows = [];
+      let row = [];
+      let cell = "";
+      let quoted = false;
+      for (let i = 0; i < text.length; i += 1) {
+        const char = text[i];
+        const next = text[i + 1];
+        if (char === '"' && quoted && next === '"') {
+          cell += '"';
+          i += 1;
+        } else if (char === '"') {
+          quoted = !quoted;
+        } else if (char === "," && !quoted) {
+          row.push(cell);
+          cell = "";
+        } else if ((char === "\n" || char === "\r") && !quoted) {
+          if (char === "\r" && next === "\n") i += 1;
+          row.push(cell);
+          rows.push(row);
+          row = [];
+          cell = "";
+        } else {
+          cell += char;
+        }
+      }
+      row.push(cell);
+      rows.push(row);
+      return rows;
+    }
+
+    function summaryFromCsv(record) {
+      return {
+        date: pick(record, ["Activity Date", "Date", "Start Date"]),
+        distanceMeters: toMeters(pick(record, ["Distance", "Distance.1", "Distance (km)", "Distance (mi)"]), record),
+        durationSec: parseDuration(pick(record, ["Elapsed Time", "Elapsed", "Duration"])),
+        movingTimeSec: parseDuration(pick(record, ["Moving Time", "Moving"])),
+        elevationGain: toMeters(pick(record, ["Elevation Gain", "Elev Gain", "Elevation Gain (m)", "Elevation Gain (ft)"]), record),
+        avgSpeed: toMetersPerSecond(pick(record, ["Average Speed", "Avg Speed"])),
+        maxSpeed: toMetersPerSecond(pick(record, ["Max Speed", "Maximum Speed"])),
+        avgHr: numberOrNull(pick(record, ["Average Heart Rate", "Avg Heart Rate", "Average HR"])),
+        maxHr: numberOrNull(pick(record, ["Max Heart Rate", "Maximum Heart Rate", "Max HR"])),
+        avgCadence: numberOrNull(pick(record, ["Average Cadence", "Avg Cadence"])),
+        avgPower: numberOrNull(pick(record, ["Average Power", "Avg Power"])),
+        maxPower: numberOrNull(pick(record, ["Max Power", "Maximum Power"])),
+        calories: numberOrNull(pick(record, ["Calories", "calories"]))
+      };
+    }
+
+    function summaryFromObject(record) {
+      return {
+        date: record.start_date || record.start_date_local || record.date || null,
+        distanceMeters: numberOrNull(record.distance) ?? numberOrNull(record.distance_meters),
+        durationSec: numberOrNull(record.elapsed_time) ?? numberOrNull(record.duration),
+        movingTimeSec: numberOrNull(record.moving_time),
+        elevationGain: numberOrNull(record.total_elevation_gain) ?? numberOrNull(record.elevation_gain),
+        avgSpeed: numberOrNull(record.average_speed),
+        maxSpeed: numberOrNull(record.max_speed),
+        avgHr: numberOrNull(record.average_heartrate),
+        maxHr: numberOrNull(record.max_heartrate),
+        avgCadence: numberOrNull(record.average_cadence),
+        avgPower: numberOrNull(record.average_watts),
+        maxPower: numberOrNull(record.max_watts),
+        calories: numberOrNull(record.calories)
+      };
+    }
+
+    function normalizePoint(point) {
+      return {
+        time: point.time || null,
+        timestamp: point.timestamp || null,
+        lat: numberOrNull(point.lat),
+        lon: numberOrNull(point.lon ?? point.lng),
+        ele: numberOrNull(point.ele ?? point.altitude),
+        distance: numberOrNull(point.distance),
+        hr: numberOrNull(point.hr ?? point.heartrate),
+        cadence: numberOrNull(point.cadence),
+        power: numberOrNull(point.power ?? point.watts),
+        speed: numberOrNull(point.speed),
+        seconds: numberOrNull(point.seconds)
+      };
+    }
+
+    function dataQuality(activity) {
+      const hasStreams = activity.points.length > 0;
+      const fields = [];
+      if (activity.stats.avgHr) fields.push("heart rate");
+      if (activity.stats.avgPower) fields.push("power");
+      if (activity.stats.avgCadence) fields.push("cadence");
+      if (activity.stats.elevationGain) fields.push("elevation");
+      return {
+        stream_points: activity.stats.pointCount,
+        has_time_series: hasStreams,
+        detected_fields: fields,
+        note: hasStreams ? "Time-series samples are condensed to fit comfortably in a ChatGPT prompt." : "CSV summary has no second-by-second stream data."
+      };
+    }
+
+    function pick(record, keys) {
+      for (const key of keys) {
+        if (record[key] !== undefined && String(record[key]).trim() !== "") return record[key];
+      }
+      const lower = Object.fromEntries(Object.entries(record).map(([key, value]) => [key.toLowerCase(), value]));
+      for (const key of keys) {
+        const value = lower[key.toLowerCase()];
+        if (value !== undefined && String(value).trim() !== "") return value;
+      }
+      return "";
+    }
+
+    function looksLikeCsv(text) {
+      const first = text.split(/\r?\n/, 1)[0] || "";
+      return first.includes(",") && /activity|distance|duration|time|sport/i.test(first);
+    }
+
+    function inferSport(fileName, fallback) {
+      const text = `${fileName} ${fallback}`.toLowerCase();
+      if (text.includes("run")) return "Run";
+      if (text.includes("ride") || text.includes("bike") || text.includes("cycle")) return "Ride";
+      return normalizeSport(fallback);
+    }
+
+    function normalizeSport(value) {
+      if (!value) return "Workout";
+      const clean = String(value).replace(/\s+/g, "");
+      if (/run/i.test(clean)) return "Run";
+      if (/ride|bike|cycle/i.test(clean)) return "Ride";
+      return clean.charAt(0).toUpperCase() + clean.slice(1);
+    }
+
+    function stripExtension(fileName) {
+      return fileName.replace(/\.[^/.]+$/, "");
+    }
+
+    function numberOrNull(value) {
+      if (value === null || value === undefined || value === "") return null;
+      const parsed = Number(String(value).replace(/[^\d.+-]/g, ""));
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    function toMeters(value, record) {
+      const num = numberOrNull(value);
+      if (num === null) return null;
+      const headerText = Object.keys(record || {}).join(" ").toLowerCase();
+      if (headerText.includes("(mi)") || headerText.includes("miles")) return num * 1609.344;
+      if (headerText.includes("(ft)") || headerText.includes("feet")) return num * 0.3048;
+      if (num < 300 && headerText.includes("distance")) return num * 1000;
+      return num;
+    }
+
+    function toMetersPerSecond(value) {
+      const num = numberOrNull(value);
+      if (num === null) return null;
+      return num > 25 ? num / 3.6 : num;
+    }
+
+    function parseDuration(value) {
+      if (!value) return null;
+      const text = String(value).trim();
+      if (/^\d+:\d\d(:\d\d)?$/.test(text)) {
+        const parts = text.split(":").map(Number);
+        if (parts.length === 2) return parts[0] * 60 + parts[1];
+        return parts[0] * 3600 + parts[1] * 60 + parts[2];
+      }
+      const num = numberOrNull(text);
+      return num;
+    }
+
+    function secondsBetween(start, end) {
+      const a = start ? Date.parse(start) : NaN;
+      const b = end ? Date.parse(end) : NaN;
+      if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+      const seconds = (b - a) / 1000;
+      return seconds > 0 ? seconds : null;
+    }
+
+    function inferDuration(points) {
+      const seconds = cleanNumbers(points.map(point => point.seconds));
+      if (!seconds.length) return null;
+      return max(seconds) - Math.min(...seconds);
+    }
+
+    function distanceFromPoints(points) {
+      const distances = cleanNumbers(points.map(point => point.distance));
+      if (distances.length) return max(distances);
+      let total = 0;
+      for (let i = 1; i < points.length; i += 1) {
+        if (validCoord(points[i - 1]) && validCoord(points[i])) {
+          total += haversine(points[i - 1].lat, points[i - 1].lon, points[i].lat, points[i].lon);
+        }
+      }
+      return total || null;
+    }
+
+    function elevationGainFromPoints(points) {
+      let gain = 0;
+      for (let i = 1; i < points.length; i += 1) {
+        const previous = points[i - 1].ele;
+        const current = points[i].ele;
+        if (Number.isFinite(previous) && Number.isFinite(current) && current > previous) {
+          gain += current - previous;
+        }
+      }
+      return gain || null;
+    }
+
+    function haversine(lat1, lon1, lat2, lon2) {
+      const radius = 6371000;
+      const toRad = degree => degree * Math.PI / 180;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+      return 2 * radius * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    function validCoord(point) {
+      return Number.isFinite(point.lat) && Number.isFinite(point.lon);
+    }
+
+    function cleanNumbers(values) {
+      return values.filter(value => Number.isFinite(value));
+    }
+
+    function mean(values) {
+      if (!values.length) return null;
+      return values.reduce((sum, value) => sum + value, 0) / values.length;
+    }
+
+    function max(values) {
+      if (!values.length) return null;
+      return Math.max(...values);
+    }
+
+    function round(value, digits = 1) {
+      if (!Number.isFinite(value)) return null;
+      const factor = 10 ** digits;
+      return Math.round(value * factor) / factor;
+    }
+
+    function formatDistance(meters) {
+      if (!Number.isFinite(meters)) return "--";
+      return `${round(meters / 1000, 2)} km`;
+    }
+
+    function formatMeters(meters) {
+      if (!Number.isFinite(meters)) return "--";
+      return `${round(meters, 0)} m`;
+    }
+
+    function formatDuration(seconds) {
+      if (!Number.isFinite(seconds)) return "--";
+      const rounded = Math.round(seconds);
+      const h = Math.floor(rounded / 3600);
+      const m = Math.floor((rounded % 3600) / 60);
+      const s = rounded % 60;
+      if (h) return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+      return `${m}:${String(s).padStart(2, "0")}`;
+    }
+
+    function formatPace(secondsPerKm) {
+      if (!Number.isFinite(secondsPerKm)) return null;
+      const minutes = Math.floor(secondsPerKm / 60);
+      const seconds = Math.round(secondsPerKm % 60);
+      return `${minutes}:${String(seconds).padStart(2, "0")}/km`;
+    }
+
+    function formatPaceForActivity(activity) {
+      const distanceKm = activity.stats.distanceMeters / 1000;
+      if (!Number.isFinite(distanceKm) || !activity.stats.durationSec) return "--";
+      if (activity.sport === "Ride") return `${round(activity.stats.avgSpeed * 3.6, 1)} km/h`;
+      return formatPace(activity.stats.durationSec / distanceKm) || "--";
+    }
+
+    function rangeLabel(values, unit) {
+      const nums = cleanNumbers(values);
+      if (!nums.length) return "--";
+      return `${round(Math.min(...nums), 0)}-${round(Math.max(...nums), 0)} ${unit}`;
+    }
+
+    function slug(text) {
+      return String(text).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "workout";
+    }
+
+    function escapeHtml(text) {
+      return String(text).replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+      }[char]));
+    }
+
+    function setStatus(text) {
+      el.status.textContent = text;
+      window.clearTimeout(setStatus.timer);
+      setStatus.timer = window.setTimeout(() => {
+        if (el.status.textContent === text) el.status.textContent = "";
+      }, 4500);
+    }
+
+    window.workoutPromptBuilder = {
+      parseFile,
+      buildPrompt,
+      formatDuration,
+      samplePoints
+    };
+
+    if ("serviceWorker" in navigator && window.isSecureContext) {
+      navigator.serviceWorker.register("./workout-prompt-sw.js").catch(() => {});
+    }
+  </script>
+</body>
+</html>
