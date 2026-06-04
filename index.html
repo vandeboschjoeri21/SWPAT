@@ -1,9 +1,6 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <link rel="icon" type="image/png" href="workout-prompt-icon-512.png">
-  <link rel="apple-touch-icon" href="workout-prompt-icon-512.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="workout-prompt-icon-512.png">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#172026">
@@ -12,6 +9,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="description" content="Convert Strava GPX, TCX, CSV, and JSON workout exports into ChatGPT-ready analysis prompts.">
   <link rel="manifest" href="./workout-prompt.webmanifest">
+  <link rel="icon" href="./workout-prompt-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" sizes="180x180" href="./workout-prompt-icon-180.png">
   <title>Workout Prompt Builder</title>
   <style>
     :root {
@@ -21,12 +20,45 @@
       --line: #d8e1e6;
       --paper: #f7f9f5;
       --panel: #ffffff;
+      --panel-soft: rgba(255, 255, 255, .92);
+      --button-soft: #ffffff;
+      --input-bg: #ffffff;
+      --drop-bg: #fbfcfa;
+      --segment-bg: #eef3f0;
+      --empty-bg: rgba(255, 255, 255, .68);
+      --chart-bg: #fbfcfa;
+      --prompt-bg: #10171b;
+      --prompt-ink: #edf5ef;
+      --body-wash: linear-gradient(180deg, rgba(255, 255, 255, .78), rgba(247, 249, 245, .98));
+      --grid-line: rgba(31, 122, 140, .08);
       --accent: #e4572e;
       --accent-2: #1f7a8c;
       --accent-3: #2e6f45;
       --focus: #f3b23e;
       --shadow: 0 18px 48px rgba(23, 32, 38, .12);
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --ink: #f2f7f4;
+      --muted: #a9bac1;
+      --line: #33454d;
+      --paper: #10171b;
+      --panel: #162127;
+      --panel-soft: rgba(22, 33, 39, .94);
+      --button-soft: #10171b;
+      --input-bg: #10171b;
+      --drop-bg: #121c21;
+      --segment-bg: #0c1418;
+      --empty-bg: rgba(16, 23, 27, .72);
+      --chart-bg: #10171b;
+      --prompt-bg: #f7f9f5;
+      --prompt-ink: #172026;
+      --body-wash: linear-gradient(180deg, rgba(16, 23, 27, .88), rgba(18, 27, 32, .98));
+      --grid-line: rgba(243, 178, 62, .07);
+      --accent-3: #79c58d;
+      --shadow: 0 18px 48px rgba(0, 0, 0, .24);
     }
 
     * { box-sizing: border-box; }
@@ -37,8 +69,8 @@
       min-height: 100dvh;
       color: var(--ink);
       background:
-        linear-gradient(180deg, rgba(255, 255, 255, .78), rgba(247, 249, 245, .98)),
-        repeating-linear-gradient(90deg, rgba(31, 122, 140, .08) 0 1px, transparent 1px 80px),
+        var(--body-wash),
+        repeating-linear-gradient(90deg, var(--grid-line) 0 1px, transparent 1px 80px),
         var(--paper);
     }
 
@@ -82,7 +114,7 @@
       border: 1px solid var(--line);
       border-radius: 8px;
       color: var(--accent-3);
-      background: rgba(255, 255, 255, .78);
+      background: var(--panel-soft);
       white-space: nowrap;
     }
 
@@ -102,7 +134,7 @@
     .panel {
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: rgba(255, 255, 255, .92);
+      background: var(--panel-soft);
       box-shadow: var(--shadow);
     }
 
@@ -129,7 +161,7 @@
       padding: 18px;
       border: 2px dashed #a8b8bf;
       border-radius: 8px;
-      background: #fbfcfa;
+      background: var(--drop-bg);
       text-align: center;
       transition: border-color .15s ease, transform .15s ease, background .15s ease;
     }
@@ -204,7 +236,7 @@
 
     .btn.secondary {
       color: var(--ink);
-      background: white;
+      background: var(--button-soft);
       border-color: var(--line);
     }
 
@@ -222,6 +254,12 @@
       gap: 12px;
     }
 
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
     label {
       display: grid;
       gap: 6px;
@@ -230,15 +268,15 @@
       font-size: 13px;
     }
 
-    select, input[type="text"], textarea {
+    select, input[type="text"], input[type="number"], textarea {
       width: 100%;
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: white;
+      background: var(--input-bg);
       color: var(--ink);
     }
 
-    select, input[type="text"] {
+    select, input[type="text"], input[type="number"] {
       min-height: 40px;
       padding: 0 10px;
     }
@@ -257,7 +295,7 @@
       padding: 4px;
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: #eef3f0;
+      background: var(--segment-bg);
     }
 
     .segment {
@@ -270,7 +308,7 @@
     }
 
     .segment[aria-pressed="true"] {
-      background: white;
+      background: var(--panel);
       color: var(--ink);
       box-shadow: 0 1px 6px rgba(23, 32, 38, .10);
     }
@@ -287,7 +325,7 @@
       border: 1px solid var(--line);
       border-radius: 8px;
       padding: 12px;
-      background: white;
+      background: var(--panel);
       cursor: pointer;
     }
 
@@ -321,7 +359,7 @@
       border: 1px solid var(--line);
       border-radius: 8px;
       padding: 12px;
-      background: white;
+      background: var(--panel);
     }
 
     .metric span {
@@ -377,9 +415,9 @@
       min-height: 360px;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
       font-size: 13px;
-      background: #10171b;
-      color: #edf5ef;
-      border-color: #10171b;
+      background: var(--prompt-bg);
+      color: var(--prompt-ink);
+      border-color: var(--prompt-bg);
     }
 
     .status {
@@ -397,7 +435,7 @@
       color: var(--muted);
       text-align: center;
       padding: 18px;
-      background: rgba(255, 255, 255, .68);
+      background: var(--empty-bg);
     }
 
     .metric-grid .empty-state {
@@ -434,7 +472,7 @@
         height: 48px;
         font-size: 25px;
       }
-      select, input[type="text"] {
+      select, input[type="text"], input[type="number"] {
         min-height: 46px;
         font-size: 16px;
       }
@@ -447,6 +485,7 @@
         font-size: 12px;
       }
       .metric-grid { grid-template-columns: 1fr; }
+      .field-grid { grid-template-columns: 1fr; }
       .segmented { grid-template-columns: 1fr; }
       .button-row .btn {
         width: 100%;
@@ -508,11 +547,63 @@
           </label>
 
           <div>
+            <h2 class="panel-title">Athlete Profile</h2>
+          </div>
+          <div class="field-grid">
+            <label>
+              Age
+              <input id="ageInput" type="number" min="1" max="120" inputmode="numeric" placeholder="36">
+            </label>
+            <label>
+              Gender
+              <select id="genderInput">
+                <option value="">Prefer not to say</option>
+                <option value="female">Female</option>
+                <option value="male">Male</option>
+                <option value="non_binary">Non-binary</option>
+                <option value="self_described">Self-described</option>
+              </select>
+            </label>
+            <label>
+              Height / length
+              <input id="heightInput" type="number" min="50" max="260" inputmode="decimal" placeholder="180">
+            </label>
+            <label>
+              Weight
+              <input id="weightInput" type="number" min="20" max="300" inputmode="decimal" placeholder="75">
+            </label>
+          </div>
+
+          <div>
             <div class="inline-note">Output size</div>
             <div class="segmented" role="group" aria-label="Output size">
-              <button class="segment" type="button" data-size="brief" aria-pressed="false">Brief</button>
-              <button class="segment" type="button" data-size="normal" aria-pressed="true">Normal</button>
-              <button class="segment" type="button" data-size="deep" aria-pressed="false">Deep</button>
+              <button class="segment size-segment" type="button" data-size="brief" aria-pressed="false">Brief</button>
+              <button class="segment size-segment" type="button" data-size="normal" aria-pressed="true">Normal</button>
+              <button class="segment size-segment" type="button" data-size="deep" aria-pressed="false">Deep</button>
+            </div>
+          </div>
+
+          <div>
+            <div class="inline-note">Workouts to analyze</div>
+            <div class="segmented" role="group" aria-label="Workouts to analyze">
+              <button class="segment target-segment" type="button" data-target="selected" aria-pressed="true">Selected</button>
+              <button class="segment target-segment" type="button" data-target="all" aria-pressed="false">All</button>
+            </div>
+          </div>
+
+          <div>
+            <div class="inline-note">Language</div>
+            <div class="segmented" role="group" aria-label="Language">
+              <button class="segment language-segment" type="button" data-language="en" aria-pressed="true">English</button>
+              <button class="segment language-segment" type="button" data-language="nl" aria-pressed="false">Nederlands</button>
+            </div>
+          </div>
+
+          <div>
+            <div class="inline-note">Theme</div>
+            <div class="segmented" role="group" aria-label="Theme">
+              <button class="segment theme-segment" type="button" data-theme="light" aria-pressed="true">Light</button>
+              <button class="segment theme-segment" type="button" data-theme="dark" aria-pressed="false">Dark</button>
             </div>
           </div>
 
@@ -569,6 +660,7 @@
             <div class="button-row">
               <button class="btn teal" id="copyBtn" type="button" disabled>Copy prompt</button>
               <button class="btn secondary" id="downloadBtn" type="button" disabled>Download text</button>
+              <button class="btn secondary" id="pdfBtn" type="button" disabled>Download PDF</button>
               <button class="btn secondary" id="selectAllBtn" type="button" disabled>Select all</button>
             </div>
             <div class="status" id="status"></div>
@@ -582,7 +674,10 @@
     const state = {
       activities: [],
       selectedId: null,
-      outputSize: "normal"
+      outputSize: "normal",
+      analysisTarget: "selected",
+      language: localStorage.getItem("workoutPromptLanguage") || "en",
+      theme: localStorage.getItem("workoutPromptTheme") || "light"
     };
 
     const el = {
@@ -596,10 +691,15 @@
       promptOutput: document.getElementById("promptOutput"),
       copyBtn: document.getElementById("copyBtn"),
       downloadBtn: document.getElementById("downloadBtn"),
+      pdfBtn: document.getElementById("pdfBtn"),
       selectAllBtn: document.getElementById("selectAllBtn"),
       analysisFocus: document.getElementById("analysisFocus"),
       goalInput: document.getElementById("goalInput"),
       notesInput: document.getElementById("notesInput"),
+      ageInput: document.getElementById("ageInput"),
+      genderInput: document.getElementById("genderInput"),
+      heightInput: document.getElementById("heightInput"),
+      weightInput: document.getElementById("weightInput"),
       status: document.getElementById("status"),
       speedChart: document.getElementById("speedChart"),
       hrChart: document.getElementById("hrChart"),
@@ -621,23 +721,60 @@
     el.fileInput.addEventListener("change", event => handleFiles(event.target.files));
     el.clearBtn.addEventListener("click", clearAll);
     el.analysisFocus.addEventListener("change", updateOutput);
-    el.goalInput.addEventListener("input", updateOutput);
-    el.notesInput.addEventListener("input", updateOutput);
+    [el.goalInput, el.notesInput, el.ageInput, el.genderInput, el.heightInput, el.weightInput].forEach(input => {
+      input.addEventListener("input", updateOutput);
+      input.addEventListener("change", updateOutput);
+    });
     el.copyBtn.addEventListener("click", copyPrompt);
     el.downloadBtn.addEventListener("click", downloadPrompt);
+    el.pdfBtn.addEventListener("click", downloadPdfReport);
     el.selectAllBtn.addEventListener("click", () => {
       el.promptOutput.focus();
       el.promptOutput.select();
     });
 
-    document.querySelectorAll(".segment").forEach(button => {
+    applyTheme(state.theme);
+
+    document.querySelectorAll(".size-segment").forEach(button => {
       button.addEventListener("click", () => {
         state.outputSize = button.dataset.size;
-        document.querySelectorAll(".segment").forEach(item => {
+        document.querySelectorAll(".size-segment").forEach(item => {
           item.setAttribute("aria-pressed", String(item === button));
         });
         updateOutput();
       });
+    });
+
+    document.querySelectorAll(".theme-segment").forEach(button => {
+      button.addEventListener("click", () => {
+        applyTheme(button.dataset.theme);
+      });
+    });
+
+    document.querySelectorAll(".target-segment").forEach(button => {
+      button.addEventListener("click", () => {
+        state.analysisTarget = button.dataset.target;
+        document.querySelectorAll(".target-segment").forEach(item => {
+          item.setAttribute("aria-pressed", String(item === button));
+        });
+        renderSelected();
+        updateOutput();
+      });
+    });
+
+    document.querySelectorAll(".language-segment").forEach(button => {
+      button.addEventListener("click", () => {
+        state.language = button.dataset.language === "nl" ? "nl" : "en";
+        localStorage.setItem("workoutPromptLanguage", state.language);
+        document.querySelectorAll(".language-segment").forEach(item => {
+          item.setAttribute("aria-pressed", String(item === button));
+        });
+        updateOutput();
+      });
+    });
+
+    document.querySelectorAll(".language-segment").forEach(button => {
+      button.setAttribute("aria-pressed", String(button.dataset.language === state.language));
     });
 
     ["dragenter", "dragover"].forEach(type => {
@@ -655,6 +792,18 @@
     });
 
     el.dropZone.addEventListener("drop", event => handleFiles(event.dataTransfer.files));
+
+    function applyTheme(theme) {
+      state.theme = theme === "dark" ? "dark" : "light";
+      document.documentElement.dataset.theme = state.theme;
+      document.querySelector('meta[name="theme-color"]').setAttribute("content", state.theme === "dark" ? "#10171b" : "#172026");
+      localStorage.setItem("workoutPromptTheme", state.theme);
+      document.querySelectorAll(".theme-segment").forEach(button => {
+        button.setAttribute("aria-pressed", String(button.dataset.theme === state.theme));
+      });
+      const activity = selectedActivity();
+      if (activity) drawCharts(activity);
+    }
 
     async function handleFiles(fileList) {
       const files = Array.from(fileList || []);
@@ -966,6 +1115,28 @@
         return;
       }
 
+      if (state.analysisTarget === "all" && state.activities.length > 1) {
+        const aggregate = aggregateStats(state.activities);
+        el.selectedLabel.textContent = `${state.activities.length} workouts · charts show selected`;
+        const metrics = [
+          ["Workouts", String(state.activities.length)],
+          ["Total distance", formatDistance(aggregate.distanceMeters)],
+          ["Total duration", formatDuration(aggregate.durationSec)],
+          ["Total elevation", formatMeters(aggregate.elevationGain)],
+          ["Avg heart rate", aggregate.avgHr ? `${round(aggregate.avgHr, 0)} bpm` : "--"],
+          ["Avg power", aggregate.avgPower ? `${round(aggregate.avgPower, 0)} W` : "--"],
+          ["Run/Ride mix", aggregate.sports],
+          ["Samples", aggregate.pointCount ? String(aggregate.pointCount) : "summary only"]
+        ];
+        el.metricGrid.innerHTML = metrics.map(([label, value]) => `
+          <div class="metric">
+            <span>${escapeHtml(label)}</span>
+            <strong>${escapeHtml(value)}</strong>
+          </div>`).join("");
+        drawCharts(activity);
+        return;
+      }
+
       el.selectedLabel.textContent = `${activity.name} · ${activity.format}`;
       const metrics = [
         ["Distance", formatDistance(activity.stats.distanceMeters)],
@@ -988,67 +1159,132 @@
     }
 
     function updateOutput() {
-      const activity = selectedActivity();
-      const hasActivity = Boolean(activity);
+      const activities = targetActivities();
+      const hasActivity = activities.length > 0;
       el.copyBtn.disabled = !hasActivity;
       el.downloadBtn.disabled = !hasActivity;
+      el.pdfBtn.disabled = !hasActivity;
       el.selectAllBtn.disabled = !hasActivity;
-      el.promptOutput.value = hasActivity ? buildPrompt(activity) : "";
+      el.promptOutput.value = hasActivity ? buildPrompt(activities) : "";
     }
 
-    function buildPrompt(activity) {
+    function buildPrompt(inputActivities) {
+      const activities = Array.isArray(inputActivities) ? inputActivities : [inputActivities];
       const focus = el.analysisFocus.options[el.analysisFocus.selectedIndex].text;
       const goal = el.goalInput.value.trim();
       const notes = el.notesInput.value.trim();
-      const samples = samplePoints(activity.points, state.outputSize === "deep" ? 72 : 40);
-      const includeSamples = state.outputSize !== "brief" && samples.length;
-      const includeSegments = state.outputSize === "deep" && activity.segments.length;
+      const language = state.language === "nl" ? "Dutch" : "English";
       const payload = {
-        activity: {
-          name: activity.name,
-          sport: activity.sport,
-          source: activity.source,
-          file: activity.fileName,
-          date: activity.stats.date,
-          metrics: {
-            distance_km: round(activity.stats.distanceMeters / 1000, 2),
-            duration: formatDuration(activity.stats.durationSec),
-            moving_time: formatDuration(activity.stats.movingTimeSec),
-            average_pace: formatPaceForActivity(activity),
-            average_speed_kmh: round(activity.stats.avgSpeed * 3.6, 1),
-            max_speed_kmh: round(activity.stats.maxSpeed * 3.6, 1),
-            elevation_gain_m: round(activity.stats.elevationGain, 0),
-            average_heart_rate_bpm: round(activity.stats.avgHr, 0),
-            max_heart_rate_bpm: round(activity.stats.maxHr, 0),
-            average_cadence_rpm: round(activity.stats.avgCadence, 0),
-            average_power_watts: round(activity.stats.avgPower, 0),
-            max_power_watts: round(activity.stats.maxPower, 0),
-            calories: round(activity.stats.calories, 0)
-          },
-          data_quality: dataQuality(activity)
-        }
+        athlete_profile: athleteProfile(),
+        analysis_request: {
+          language,
+          focus,
+          output_size: state.outputSize,
+          workout_count: activities.length,
+          goal: goal || null,
+          notes: notes || null
+        },
+        workout_summary: activities.length > 1 ? aggregateStats(activities) : null,
+        workouts: activities.map(activity => workoutPayload(activity))
       };
-      if (includeSegments) payload.activity.segments = activity.segments;
-      if (includeSamples) payload.activity.condensed_samples = samples;
 
+      if (state.language === "nl") return buildDutchPrompt(payload);
+      return buildEnglishPrompt(payload);
+    }
+
+    function workoutPayload(activity) {
+      const sampleLimit = state.outputSize === "brief" ? 12 : state.outputSize === "deep" ? 72 : 40;
+      return {
+        name: activity.name,
+        sport: activity.sport,
+        source: activity.source,
+        file: activity.fileName,
+        date: activity.stats.date,
+        metrics: allMetrics(activity),
+        data_quality: dataQuality(activity),
+        segments: activity.segments,
+        condensed_samples: samplePoints(activity.points, sampleLimit)
+      };
+    }
+
+    function allMetrics(activity) {
+      return {
+        distance_km: round(activity.stats.distanceMeters / 1000, 2),
+        duration: formatDuration(activity.stats.durationSec),
+        duration_seconds: round(activity.stats.durationSec, 0),
+        moving_time: formatDuration(activity.stats.movingTimeSec),
+        moving_time_seconds: round(activity.stats.movingTimeSec, 0),
+        average_pace: formatPaceForActivity(activity),
+        average_speed_kmh: round(activity.stats.avgSpeed * 3.6, 1),
+        max_speed_kmh: round(activity.stats.maxSpeed * 3.6, 1),
+        elevation_gain_m: round(activity.stats.elevationGain, 0),
+        average_heart_rate_bpm: round(activity.stats.avgHr, 0),
+        max_heart_rate_bpm: round(activity.stats.maxHr, 0),
+        average_cadence_rpm: round(activity.stats.avgCadence, 0),
+        average_power_watts: round(activity.stats.avgPower, 0),
+        max_power_watts: round(activity.stats.maxPower, 0),
+        calories: round(activity.stats.calories, 0),
+        stream_point_count: activity.stats.pointCount
+      };
+    }
+
+    function athleteProfile() {
+      return {
+        age_years: numberOrNull(el.ageInput.value),
+        gender: el.genderInput.value || null,
+        height_cm: numberOrNull(el.heightInput.value),
+        weight_kg: numberOrNull(el.weightInput.value)
+      };
+    }
+
+    function buildEnglishPrompt(payload) {
+      const plural = payload.workouts.length > 1;
       const questions = [
-        "What does this workout suggest about pacing, endurance, fatigue, and execution?",
-        "What should I do differently in the next similar workout?",
+        plural ? "Compare these workouts and identify patterns in pacing, load, fatigue, and execution." : "What does this workout suggest about pacing, endurance, fatigue, and execution?",
+        "Use the athlete profile when it is relevant, but avoid overclaiming from age, height, weight, or gender alone.",
+        plural ? "What trends should I watch across the next workouts?" : "What should I do differently in the next similar workout?",
         "Give practical recommendations for training, recovery, and progression."
       ];
 
       return [
         "Act as an experienced endurance coach for running and cycling.",
-        `Analysis focus: ${focus}.`,
-        goal ? `My goal: ${goal}` : "",
-        notes ? `Context notes: ${notes}` : "",
+        `Respond in English.`,
+        `Analysis focus: ${payload.analysis_request.focus}.`,
+        payload.analysis_request.goal ? `My goal: ${payload.analysis_request.goal}` : "",
+        payload.analysis_request.notes ? `Context notes: ${payload.analysis_request.notes}` : "",
         "",
-        "Please analyze this workout using the data below. Be specific, separate observations from recommendations, and mention any data limitations.",
+        `Please analyze ${plural ? "these workouts" : "this workout"} using every available field in the data below, including profile, metrics, segments, data quality, and condensed samples. Be specific, separate observations from recommendations, and mention data limitations.`,
         "",
         "Questions to answer:",
         ...questions.map(question => `- ${question}`),
         "",
         "Workout data:",
+        JSON.stringify(payload, null, 2)
+      ].filter(line => line !== "").join("\n");
+    }
+
+    function buildDutchPrompt(payload) {
+      const plural = payload.workouts.length > 1;
+      const questions = [
+        plural ? "Vergelijk deze trainingen en herken patronen in tempo, belasting, vermoeidheid en uitvoering." : "Wat zegt deze training over tempo, duurvermogen, vermoeidheid en uitvoering?",
+        "Gebruik het atleetprofiel wanneer dat relevant is, maar trek geen te harde conclusies uit leeftijd, lengte, gewicht of gender alleen.",
+        plural ? "Welke trends moet ik in de volgende trainingen in de gaten houden?" : "Wat kan ik anders doen bij een vergelijkbare volgende training?",
+        "Geef praktische aanbevelingen voor training, herstel en progressie."
+      ];
+
+      return [
+        "Gedraag je als een ervaren endurance coach voor hardlopen en fietsen.",
+        "Antwoord in het Nederlands.",
+        `Analysefocus: ${payload.analysis_request.focus}.`,
+        payload.analysis_request.goal ? `Mijn doel: ${payload.analysis_request.goal}` : "",
+        payload.analysis_request.notes ? `Contextnotities: ${payload.analysis_request.notes}` : "",
+        "",
+        `Analyseer ${plural ? "deze trainingen" : "deze training"} met alle beschikbare velden hieronder, inclusief profiel, metrics, segmenten, datakwaliteit en samengevatte samples. Wees specifiek, splits observaties en aanbevelingen, en benoem beperkingen in de data.`,
+        "",
+        "Vragen om te beantwoorden:",
+        ...questions.map(question => `- ${question}`),
+        "",
+        "Workoutdata:",
         JSON.stringify(payload, null, 2)
       ].filter(line => line !== "").join("\n");
     }
@@ -1070,10 +1306,14 @@
       const ctx = canvas.getContext("2d");
       const width = canvas.width;
       const height = canvas.height;
+      const styles = getComputedStyle(document.documentElement);
+      const chartBg = styles.getPropertyValue("--chart-bg").trim() || "#fbfcfa";
+      const chartLine = styles.getPropertyValue("--line").trim() || "#d8e1e6";
+      const muted = styles.getPropertyValue("--muted").trim() || "#60707c";
       ctx.clearRect(0, 0, width, height);
-      ctx.fillStyle = "#fbfcfa";
+      ctx.fillStyle = chartBg;
       ctx.fillRect(0, 0, width, height);
-      ctx.strokeStyle = "#d8e1e6";
+      ctx.strokeStyle = chartLine;
       ctx.lineWidth = 1;
       for (let i = 1; i < 4; i += 1) {
         const y = (height / 4) * i;
@@ -1085,7 +1325,7 @@
       const clean = values.map(value => Number.isFinite(value) ? value : null);
       const nums = clean.filter(value => value !== null);
       if (nums.length < 2) {
-        ctx.fillStyle = "#60707c";
+        ctx.fillStyle = muted;
         ctx.font = "15px system-ui, sans-serif";
         ctx.fillText("No stream data", 18, height / 2);
         return;
@@ -1134,16 +1374,29 @@
     }
 
     function downloadPrompt() {
-      const activity = selectedActivity();
-      if (!activity) return;
+      const activities = targetActivities();
+      if (!activities.length) return;
       const blob = new Blob([el.promptOutput.value], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `${slug(activity.name)}-chatgpt-prompt.txt`;
+      link.download = `${downloadBaseName(activities)}-chatgpt-prompt.txt`;
       link.click();
       URL.revokeObjectURL(url);
       setStatus("Prompt text downloaded.");
+    }
+
+    function downloadPdfReport() {
+      const activities = targetActivities();
+      if (!activities.length) return;
+      const blob = buildWorkoutPdf(activities);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${downloadBaseName(activities)}-workout-report.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+      setStatus("PDF report downloaded.");
     }
 
     function clearAll() {
@@ -1153,8 +1406,296 @@
       setStatus("Cleared.");
     }
 
+    function buildWorkoutPdf(inputActivities) {
+      const activities = Array.isArray(inputActivities) ? inputActivities : [inputActivities];
+      const pageWidth = 595;
+      const pageHeight = 842;
+      const pages = buildPdfPages(activities, pageWidth, pageHeight);
+
+      const objects = [];
+      const pageIds = [];
+      objects.push("<< /Type /Catalog /Pages 2 0 R >>");
+      objects.push(null);
+
+      pages.forEach(content => {
+        const contentId = objects.length + 1;
+        objects.push(`<< /Length ${content.length} >>\nstream\n${content}\nendstream`);
+        const pageId = objects.length + 1;
+        objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> /F2 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >> >> >> /Contents ${contentId} 0 R >>`);
+        pageIds.push(pageId);
+      });
+
+      objects[1] = `<< /Type /Pages /Kids [${pageIds.map(id => `${id} 0 R`).join(" ")}] /Count ${pageIds.length} >>`;
+      let pdf = "%PDF-1.4\n";
+      const offsets = [0];
+      objects.forEach((object, index) => {
+        offsets.push(pdf.length);
+        pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+      });
+      const xrefStart = pdf.length;
+      pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+      offsets.slice(1).forEach(offset => {
+        pdf += `${String(offset).padStart(10, "0")} 00000 n \n`;
+      });
+      pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF`;
+      return new Blob([pdf], { type: "application/pdf" });
+    }
+
+    function buildPdfPages(activities, pageWidth, pageHeight) {
+      const aggregate = aggregateStats(activities);
+      const profile = athleteProfile();
+      const pages = [];
+      const overview = newPdfPainter(pageWidth, pageHeight);
+      drawPdfHeader(overview, "Workout Report", activities.length > 1 ? `${activities.length} workouts analyzed` : activities[0].name);
+      drawMetricCards(overview, [
+        ["Distance", formatDistance(aggregate.distanceMeters)],
+        ["Duration", formatDuration(aggregate.durationSec)],
+        ["Elevation", formatMeters(aggregate.elevationGain)],
+        ["Avg HR", aggregate.avgHr ? `${round(aggregate.avgHr, 0)} bpm` : "--"],
+        ["Avg Power", aggregate.avgPower ? `${round(aggregate.avgPower, 0)} W` : "--"],
+        ["Streams", aggregate.pointCount ? `${aggregate.pointCount}` : "summary"]
+      ], 44, 660, 86, 68);
+      drawPdfSection(overview, "Athlete profile", 44, 628);
+      overview.text(`Age: ${profile.age_years || "--"}   Gender: ${profile.gender || "--"}   Height: ${profile.height_cm || "--"} cm   Weight: ${profile.weight_kg || "--"} kg`, 44, 610, 10, "regular", [0.38, 0.44, 0.48]);
+      drawPdfSection(overview, "Workout list", 44, 572);
+      let listY = 552;
+      activities.slice(0, 12).forEach((activity, index) => {
+        overview.text(`${index + 1}. ${activity.name}`, 44, listY, 10, "bold");
+        overview.text(`${activity.sport}  ${formatDistance(activity.stats.distanceMeters)}  ${formatDuration(activity.stats.durationSec)}  ${formatPaceForActivity(activity)}  ${formatMeters(activity.stats.elevationGain)}`, 44, listY - 14, 9, "regular", [0.38, 0.44, 0.48]);
+        listY -= 32;
+      });
+      if (activities.length > 12) overview.text(`+ ${activities.length - 12} more workouts`, 44, listY, 9, "regular", [0.38, 0.44, 0.48]);
+      drawPdfFooter(overview, "Generated by Workout Prompt Builder");
+      pages.push(overview.output());
+
+      activities.forEach((activity, index) => {
+        const page = newPdfPainter(pageWidth, pageHeight);
+        drawPdfHeader(page, activity.name, `${activity.sport} · ${activity.format} · ${activity.stats.date || "No date"}`);
+        drawMetricCards(page, [
+          ["Distance", formatDistance(activity.stats.distanceMeters)],
+          ["Duration", formatDuration(activity.stats.durationSec)],
+          ["Pace/speed", formatPaceForActivity(activity)],
+          ["Elevation", formatMeters(activity.stats.elevationGain)],
+          ["Heart rate", activity.stats.avgHr ? `${round(activity.stats.avgHr, 0)} / ${round(activity.stats.maxHr, 0) || "--"} bpm` : "--"],
+          ["Power", activity.stats.avgPower ? `${round(activity.stats.avgPower, 0)} W` : "--"]
+        ], 44, 660, 86, 68);
+
+        drawRouteTrace(page, activity, 44, 430, 244, 182);
+        drawPdfChart(page, "Pace / speed", activity.points.map(point => point.speed ? point.speed * 3.6 : null), "km/h", 312, 520, 240, 92, [0.89, 0.34, 0.18]);
+        drawPdfChart(page, "Heart rate", activity.points.map(point => point.hr), "bpm", 312, 392, 240, 92, [0.78, 0.24, 0.34]);
+        drawPdfChart(page, "Elevation", activity.points.map(point => point.ele), "m", 312, 264, 240, 92, [0.12, 0.48, 0.55]);
+
+        drawSegmentTable(page, activity, 44, 224);
+        drawDataQuality(page, activity, 44, 90);
+        drawPdfFooter(page, `${index + 1} of ${activities.length}`);
+        pages.push(page.output());
+      });
+
+      return pages;
+    }
+
+    function newPdfPainter(width, height) {
+      const ops = [];
+      const color = value => value.map(part => round(part, 3)).join(" ");
+      return {
+        width,
+        height,
+        ops,
+        text(text, x, y, size = 10, weight = "regular", fill = [0.09, 0.13, 0.15]) {
+          ops.push(`${color(fill)} rg BT /${weight === "bold" ? "F2" : "F1"} ${size} Tf ${round(x, 2)} ${round(y, 2)} Td (${pdfEscape(text)}) Tj ET`);
+        },
+        rect(x, y, w, h, fill = [1, 1, 1], stroke = [0.85, 0.88, 0.90]) {
+          ops.push(`${color(fill)} rg ${round(x, 2)} ${round(y, 2)} ${round(w, 2)} ${round(h, 2)} re f`);
+          if (stroke) ops.push(`${color(stroke)} RG ${round(x, 2)} ${round(y, 2)} ${round(w, 2)} ${round(h, 2)} re S`);
+        },
+        line(points, stroke = [0.89, 0.34, 0.18], width = 2) {
+          if (points.length < 2) return;
+          ops.push(`${color(stroke)} RG ${round(width, 2)} w ${points.map((point, index) => `${round(point[0], 2)} ${round(point[1], 2)} ${index ? "l" : "m"}`).join(" ")} S`);
+        },
+        output() {
+          return ops.join("\n");
+        }
+      };
+    }
+
+    function drawPdfHeader(page, title, subtitle) {
+      page.rect(0, 790, page.width, 52, [0.09, 0.13, 0.15], null);
+      page.text(title, 44, 812, 20, "bold", [0.97, 0.98, 0.96]);
+      page.text(subtitle, 44, 795, 9, "regular", [0.77, 0.83, 0.84]);
+    }
+
+    function drawMetricCards(page, cards, x, y, w, h) {
+      cards.forEach(([label, value], index) => {
+        const col = index % 3;
+        const row = Math.floor(index / 3);
+        const cx = x + col * (w + 12);
+        const cy = y - row * (h + 12);
+        page.rect(cx, cy, w, h, [0.98, 0.99, 0.97], [0.85, 0.88, 0.90]);
+        page.text(label, cx + 10, cy + h - 20, 8, "regular", [0.38, 0.44, 0.48]);
+        page.text(value || "--", cx + 10, cy + 22, 14, "bold", [0.09, 0.13, 0.15]);
+      });
+    }
+
+    function drawPdfSection(page, label, x, y) {
+      page.text(label, x, y, 13, "bold", [0.09, 0.13, 0.15]);
+      page.line([[x, y - 8], [552, y - 8]], [0.85, 0.88, 0.90], 1);
+    }
+
+    function drawRouteTrace(page, activity, x, y, w, h) {
+      page.rect(x, y, w, h, [0.98, 0.99, 0.97], [0.85, 0.88, 0.90]);
+      page.text("Route", x + 12, y + h - 18, 12, "bold");
+      const coords = downsamplePdfSeries(activity.points.filter(validCoord), 500);
+      if (coords.length < 2) {
+        page.text("No GPS trace available", x + 12, y + h / 2, 10, "regular", [0.38, 0.44, 0.48]);
+        return;
+      }
+      const minLat = Math.min(...coords.map(point => point.lat));
+      const maxLat = Math.max(...coords.map(point => point.lat));
+      const minLon = Math.min(...coords.map(point => point.lon));
+      const maxLon = Math.max(...coords.map(point => point.lon));
+      const pad = 20;
+      const mapped = coords.map(point => {
+        const px = x + pad + ((point.lon - minLon) / ((maxLon - minLon) || 1)) * (w - pad * 2);
+        const py = y + pad + ((point.lat - minLat) / ((maxLat - minLat) || 1)) * (h - pad * 2);
+        return [px, py];
+      });
+      page.line(mapped, [0.12, 0.48, 0.55], 2.6);
+      page.text("GPS route trace", x + 12, y + 12, 8, "regular", [0.38, 0.44, 0.48]);
+    }
+
+    function drawPdfChart(page, title, values, unit, x, y, w, h, color) {
+      page.rect(x, y, w, h, [0.98, 0.99, 0.97], [0.85, 0.88, 0.90]);
+      const nums = values.filter(Number.isFinite);
+      page.text(title, x + 10, y + h - 17, 11, "bold");
+      if (nums.length < 2) {
+        page.text("No stream data", x + 10, y + h / 2, 9, "regular", [0.38, 0.44, 0.48]);
+        return;
+      }
+      const minValue = Math.min(...nums);
+      const maxValue = Math.max(...nums);
+      page.text(`${round(minValue, 0)}-${round(maxValue, 0)} ${unit}`, x + w - 70, y + h - 17, 8, "regular", [0.38, 0.44, 0.48]);
+      for (let i = 1; i < 4; i += 1) {
+        const gy = y + 14 + (i / 4) * (h - 34);
+        page.line([[x + 10, gy], [x + w - 10, gy]], [0.90, 0.92, 0.93], 0.7);
+      }
+      const spread = (maxValue - minValue) || 1;
+      const clean = downsamplePdfSeries(values.map(value => Number.isFinite(value) ? value : null), 420);
+      const points = [];
+      clean.forEach((value, index) => {
+        if (value === null) return;
+        const px = x + 10 + (index / Math.max(1, clean.length - 1)) * (w - 20);
+        const py = y + 14 + ((value - minValue) / spread) * (h - 34);
+        points.push([px, py]);
+      });
+      page.line(points, color, 2);
+    }
+
+    function drawSegmentTable(page, activity, x, y) {
+      drawPdfSection(page, "Segments", x, y + 46);
+      if (!activity.segments.length) {
+        page.text("No segment breakdown available", x, y + 24, 9, "regular", [0.38, 0.44, 0.48]);
+        return;
+      }
+      const headers = ["#", "km", "time", "pace", "HR", "W", "elev"];
+      const widths = [28, 54, 62, 62, 46, 46, 54];
+      let cx = x;
+      headers.forEach((header, index) => {
+        page.text(header, cx, y + 24, 8, "bold", [0.38, 0.44, 0.48]);
+        cx += widths[index];
+      });
+      let rowY = y + 8;
+      activity.segments.slice(0, 8).forEach(segment => {
+        cx = x;
+        [segment.segment, segment.distanceKm, segment.duration, segment.pace || "--", segment.avgHr || "--", segment.avgPower || "--", `${segment.elevationChangeM || 0}m`].forEach((value, index) => {
+          page.text(String(value), cx, rowY, 8, "regular");
+          cx += widths[index];
+        });
+        rowY -= 14;
+      });
+    }
+
+    function drawDataQuality(page, activity, x, y) {
+      drawPdfSection(page, "Data quality", x, y + 28);
+      const quality = dataQuality(activity);
+      page.text(`Stream points: ${quality.stream_points}. Fields: ${quality.detected_fields.join(", ") || "summary only"}.`, x, y + 8, 9, "regular", [0.38, 0.44, 0.48]);
+      page.text(quality.note, x, y - 6, 8, "regular", [0.38, 0.44, 0.48]);
+    }
+
+    function drawPdfFooter(page, label) {
+      page.line([[44, 34], [552, 34]], [0.85, 0.88, 0.90], 1);
+      page.text(label, 44, 20, 8, "regular", [0.38, 0.44, 0.48]);
+    }
+
+    function downsamplePdfSeries(values, limit) {
+      if (values.length <= limit) return values;
+      const step = Math.ceil(values.length / limit);
+      return values.filter((_, index) => index % step === 0);
+    }
+
+    function wrapPdfText(text, width) {
+      const clean = pdfClean(text || " ");
+      if (!clean.trim()) return [" "];
+      const words = clean.split(/\s+/);
+      const lines = [];
+      let line = "";
+      words.forEach(word => {
+        const next = line ? `${line} ${word}` : word;
+        if (next.length > width && line) {
+          lines.push(line);
+          line = word;
+        } else {
+          line = next;
+        }
+      });
+      lines.push(line);
+      return lines;
+    }
+
+    function pdfClean(text) {
+      return String(text).replace(/[^\x20-\x7E]/g, " ");
+    }
+
+    function pdfEscape(text) {
+      return pdfClean(text).replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+    }
+
     function selectedActivity() {
       return state.activities.find(activity => activity.id === state.selectedId) || null;
+    }
+
+    function targetActivities() {
+      if (state.analysisTarget === "all") return state.activities.slice();
+      const activity = selectedActivity();
+      return activity ? [activity] : [];
+    }
+
+    function aggregateStats(activities) {
+      const distanceMeters = activities.reduce((sum, activity) => sum + (activity.stats.distanceMeters || 0), 0);
+      const durationSec = activities.reduce((sum, activity) => sum + (activity.stats.durationSec || 0), 0);
+      const elevationGain = activities.reduce((sum, activity) => sum + (activity.stats.elevationGain || 0), 0);
+      const pointCount = activities.reduce((sum, activity) => sum + (activity.stats.pointCount || 0), 0);
+      const avgHrValues = activities.map(activity => activity.stats.avgHr).filter(Number.isFinite);
+      const avgPowerValues = activities.map(activity => activity.stats.avgPower).filter(Number.isFinite);
+      const sports = Object.entries(activities.reduce((counts, activity) => {
+        counts[activity.sport] = (counts[activity.sport] || 0) + 1;
+        return counts;
+      }, {})).map(([sport, count]) => `${count} ${sport}`).join(", ");
+      return {
+        workout_count: activities.length,
+        distance_km: round(distanceMeters / 1000, 2),
+        distanceMeters,
+        duration: formatDuration(durationSec),
+        durationSec,
+        elevation_gain_m: round(elevationGain, 0),
+        elevationGain,
+        average_heart_rate_bpm: round(mean(avgHrValues), 0),
+        avgHr: mean(avgHrValues),
+        average_power_watts: round(mean(avgPowerValues), 0),
+        avgPower: mean(avgPowerValues),
+        stream_point_count: pointCount,
+        pointCount,
+        sports: sports || "--"
+      };
     }
 
     function parseXml(text) {
@@ -1458,6 +1999,11 @@
 
     function slug(text) {
       return String(text).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "workout";
+    }
+
+    function downloadBaseName(activities) {
+      if (activities.length === 1) return slug(activities[0].name);
+      return `${activities.length}-workouts`;
     }
 
     function escapeHtml(text) {
