@@ -1,9 +1,6 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <link rel="icon" type="image/png" href="workout-prompt-icon-512.png">
-  <link rel="apple-touch-icon" href="workout-prompt-icon-512.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="workout-prompt-icon-512.png">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#172026">
@@ -291,6 +288,16 @@
       line-height: 1.45;
     }
 
+    .zone-editor {
+      min-height: 122px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+    }
+
+    .span-full {
+      grid-column: 1 / -1;
+    }
+
     .segmented {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -355,6 +362,49 @@
       display: grid;
       grid-template-columns: repeat(4, minmax(120px, 1fr));
       gap: 10px;
+    }
+
+    .zone-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .zone-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: var(--panel);
+      min-width: 0;
+    }
+
+    .zone-card h3 {
+      margin: 0 0 10px;
+      font-size: 14px;
+      letter-spacing: 0;
+    }
+
+    .zone-row {
+      display: grid;
+      grid-template-columns: 52px minmax(0, 1fr) 54px;
+      gap: 8px;
+      align-items: center;
+      min-height: 26px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .zone-bar {
+      height: 8px;
+      border-radius: 999px;
+      background: var(--segment-bg);
+      overflow: hidden;
+    }
+
+    .zone-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--accent);
     }
 
     .metric {
@@ -489,6 +539,7 @@
       }
       .metric-grid { grid-template-columns: 1fr; }
       .field-grid { grid-template-columns: 1fr; }
+      .zone-grid { grid-template-columns: 1fr; }
       .segmented { grid-template-columns: 1fr; }
       .button-row .btn {
         width: 100%;
@@ -578,6 +629,42 @@
           </div>
 
           <div>
+            <h2 class="panel-title">Training Baselines</h2>
+          </div>
+          <div class="field-grid">
+            <label>
+              Max HR
+              <input id="maxHrInput" type="number" min="80" max="230" inputmode="numeric" placeholder="190">
+            </label>
+            <label>
+              FTP
+              <input id="ftpInput" type="number" min="50" max="600" inputmode="numeric" placeholder="250">
+            </label>
+          </div>
+          <p class="hint">Max HR is used for heart-rate zones. FTP is used for cycling power zones.</p>
+          <div class="field-grid">
+            <label class="span-full">
+              Manual HR zones
+              <textarea class="zone-editor" id="customHrZonesInput" placeholder="Optional. Example:
+Z1 100-120
+Z2 121-140
+Z3 141-160
+Z4 161-180
+Z5 181+"></textarea>
+            </label>
+            <label class="span-full">
+              Manual power zones
+              <textarea class="zone-editor" id="customPowerZonesInput" placeholder="Optional. Example:
+Z1 0-140
+Z2 141-190
+Z3 191-230
+Z4 231-270
+Z5 271+"></textarea>
+            </label>
+          </div>
+          <p class="hint">Manual zones override Max HR/FTP zones and are used to calculate time and percentages when HR or power stream data is present.</p>
+
+          <div>
             <div class="inline-note">Output size</div>
             <div class="segmented" role="group" aria-label="Output size">
               <button class="segment size-segment" type="button" data-size="brief" aria-pressed="false">Brief</button>
@@ -628,6 +715,18 @@
           <div class="panel-body">
             <div class="metric-grid" id="metricGrid">
               <div class="empty-state">Add a GPX, TCX, CSV, or JSON file to see metrics.</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2 class="panel-title">Zones</h2>
+            <span class="inline-note" id="zoneLabel">Add Max HR or FTP for zone percentages</span>
+          </div>
+          <div class="panel-body">
+            <div class="zone-grid" id="zoneGrid">
+              <div class="empty-state">Zone time and percentages will appear here when workout streams and baselines are available.</div>
             </div>
           </div>
         </section>
@@ -691,6 +790,8 @@
       activityList: document.getElementById("activityList"),
       metricGrid: document.getElementById("metricGrid"),
       selectedLabel: document.getElementById("selectedLabel"),
+      zoneGrid: document.getElementById("zoneGrid"),
+      zoneLabel: document.getElementById("zoneLabel"),
       promptOutput: document.getElementById("promptOutput"),
       copyBtn: document.getElementById("copyBtn"),
       downloadBtn: document.getElementById("downloadBtn"),
@@ -703,6 +804,10 @@
       genderInput: document.getElementById("genderInput"),
       heightInput: document.getElementById("heightInput"),
       weightInput: document.getElementById("weightInput"),
+      maxHrInput: document.getElementById("maxHrInput"),
+      ftpInput: document.getElementById("ftpInput"),
+      customHrZonesInput: document.getElementById("customHrZonesInput"),
+      customPowerZonesInput: document.getElementById("customPowerZonesInput"),
       status: document.getElementById("status"),
       speedChart: document.getElementById("speedChart"),
       hrChart: document.getElementById("hrChart"),
@@ -724,9 +829,17 @@
     el.fileInput.addEventListener("change", event => handleFiles(event.target.files));
     el.clearBtn.addEventListener("click", clearAll);
     el.analysisFocus.addEventListener("change", updateOutput);
-    [el.goalInput, el.notesInput, el.ageInput, el.genderInput, el.heightInput, el.weightInput].forEach(input => {
-      input.addEventListener("input", updateOutput);
-      input.addEventListener("change", updateOutput);
+    [el.goalInput, el.notesInput, el.ageInput, el.genderInput, el.heightInput, el.weightInput, el.maxHrInput, el.ftpInput, el.customHrZonesInput, el.customPowerZonesInput].forEach(input => {
+      input.addEventListener("input", () => {
+        saveProfileSettings();
+        renderSelected();
+        updateOutput();
+      });
+      input.addEventListener("change", () => {
+        saveProfileSettings();
+        renderSelected();
+        updateOutput();
+      });
     });
     el.copyBtn.addEventListener("click", copyPrompt);
     el.downloadBtn.addEventListener("click", downloadPrompt);
@@ -736,6 +849,7 @@
       el.promptOutput.select();
     });
 
+    loadProfileSettings();
     applyTheme(state.theme);
 
     document.querySelectorAll(".size-segment").forEach(button => {
@@ -806,6 +920,40 @@
       });
       const activity = selectedActivity();
       if (activity) drawCharts(activity);
+    }
+
+    function loadProfileSettings() {
+      try {
+        const saved = JSON.parse(localStorage.getItem("workoutPromptProfile") || "{}");
+        [
+          ["ageInput", "age"],
+          ["genderInput", "gender"],
+          ["heightInput", "height"],
+          ["weightInput", "weight"],
+          ["maxHrInput", "maxHr"],
+          ["ftpInput", "ftp"],
+          ["customHrZonesInput", "customHrZones"],
+          ["customPowerZonesInput", "customPowerZones"]
+        ].forEach(([elementKey, savedKey]) => {
+          if (saved[savedKey] !== undefined && saved[savedKey] !== null) el[elementKey].value = saved[savedKey];
+        });
+      } catch {
+        localStorage.removeItem("workoutPromptProfile");
+      }
+    }
+
+    function saveProfileSettings() {
+      const profile = {
+        age: el.ageInput.value,
+        gender: el.genderInput.value,
+        height: el.heightInput.value,
+        weight: el.weightInput.value,
+        maxHr: el.maxHrInput.value,
+        ftp: el.ftpInput.value,
+        customHrZones: el.customHrZonesInput.value,
+        customPowerZones: el.customPowerZonesInput.value
+      };
+      localStorage.setItem("workoutPromptProfile", JSON.stringify(profile));
     }
 
     async function handleFiles(fileList) {
@@ -1114,6 +1262,7 @@
       if (!activity) {
         el.selectedLabel.textContent = "No activity selected";
         el.metricGrid.innerHTML = '<div class="empty-state">Add a GPX, TCX, CSV, or JSON file to see metrics.</div>';
+        clearZones();
         clearCharts();
         return;
       }
@@ -1136,6 +1285,7 @@
             <span>${escapeHtml(label)}</span>
             <strong>${escapeHtml(value)}</strong>
           </div>`).join("");
+        renderZones(state.activities);
         drawCharts(activity);
         return;
       }
@@ -1158,7 +1308,53 @@
           <strong>${escapeHtml(value)}</strong>
         </div>`).join("");
 
+      renderZones([activity]);
       drawCharts(activity);
+    }
+
+    function renderZones(activities) {
+      const zones = zoneAnalysis(activities);
+      const hasHr = zones.hr.distribution.some(zone => zone.samples > 0);
+      const hasPower = zones.power.distribution.some(zone => zone.samples > 0);
+      el.zoneLabel.textContent = zones.summary;
+      if (!hasHr && !hasPower) {
+        el.zoneGrid.innerHTML = '<div class="empty-state">No heart-rate or power stream data found in the selected workout data.</div>';
+        return;
+      }
+      el.zoneGrid.innerHTML = [
+        zoneCardHtml("Heart-rate zones", zones.hr),
+        zoneCardHtml("Power zones", zones.power)
+      ].join("");
+    }
+
+    function zoneCardHtml(title, zoneSet) {
+      if (!zoneSet.available) {
+        return `<div class="zone-card"><h3>${escapeHtml(title)}</h3><p class="hint">${escapeHtml(zoneSet.note)}</p></div>`;
+      }
+      return `<div class="zone-card">
+        <h3>${escapeHtml(title)}</h3>
+        <p class="hint">${escapeHtml(zoneSourceLabel(zoneSet))}</p>
+        ${zoneSet.distribution.map(zone => `
+          <div class="zone-row">
+            <span>${escapeHtml(zone.name)}</span>
+            <div class="zone-bar"><div class="zone-fill" style="width:${Math.min(100, Math.max(0, zone.percent || 0))}%"></div></div>
+            <span>${escapeHtml(round(zone.percent, 1) ?? 0)}%</span>
+          </div>
+          <div class="inline-note">${escapeHtml(zone.rangeLabel)} · ${escapeHtml(formatDuration(zone.seconds))}</div>
+        `).join("")}
+      </div>`;
+    }
+
+    function zoneSourceLabel(zoneSet) {
+      if (zoneSet.source === "manual_custom_zones") return "Using manual zones.";
+      if (zoneSet.source === "max_hr_input") return `Using Max HR ${zoneSet.baseline || "--"} bpm.`;
+      if (zoneSet.source === "ftp_input") return `Using FTP ${zoneSet.baseline || "--"} W.`;
+      return zoneSet.note || "Zones not configured.";
+    }
+
+    function clearZones() {
+      el.zoneLabel.textContent = "Add Max HR, FTP, or manual zones for zone percentages";
+      el.zoneGrid.innerHTML = '<div class="empty-state">Zone time and percentages will appear here when workout streams and zone definitions are available.</div>';
     }
 
     function updateOutput() {
@@ -1187,7 +1383,7 @@
           goal: goal || null,
           notes: notes || null
         },
-        workout_summary: activities.length > 1 ? aggregateStats(activities) : null,
+        workout_summary: activities.length > 1 ? { ...aggregateStats(activities), zones: zoneAnalysis(activities) } : null,
         workouts: activities.map(activity => workoutPayload(activity))
       };
 
@@ -1204,6 +1400,7 @@
         file: activity.fileName,
         date: activity.stats.date,
         metrics: allMetrics(activity),
+        zones: zoneAnalysis([activity]),
         data_quality: dataQuality(activity),
         segments: activity.segments,
         condensed_samples: samplePoints(activity.points, sampleLimit)
@@ -1227,7 +1424,9 @@
         average_power_watts: round(activity.stats.avgPower, 0),
         max_power_watts: round(activity.stats.maxPower, 0),
         calories: round(activity.stats.calories, 0),
-        stream_point_count: activity.stats.pointCount
+        stream_point_count: activity.stats.pointCount,
+        hr_zone_source: parseCustomZones(el.customHrZonesInput.value, "bpm").length ? "manual_custom_zones" : numberOrNull(el.maxHrInput.value) ? "max_hr_input" : "not_configured",
+        power_zone_source: parseCustomZones(el.customPowerZonesInput.value, "W").length ? "manual_custom_zones" : numberOrNull(el.ftpInput.value) ? "ftp_input" : "not_configured"
       };
     }
 
@@ -1236,7 +1435,222 @@
         age_years: numberOrNull(el.ageInput.value),
         gender: el.genderInput.value || null,
         height_cm: numberOrNull(el.heightInput.value),
-        weight_kg: numberOrNull(el.weightInput.value)
+        weight_kg: numberOrNull(el.weightInput.value),
+        max_heart_rate_bpm: numberOrNull(el.maxHrInput.value),
+        ftp_watts: numberOrNull(el.ftpInput.value),
+        manual_hr_zones: parseCustomZones(el.customHrZonesInput.value, "bpm").map(zone => ({ name: zone.name, range: `${zone.rangeLabel} bpm` })),
+        manual_power_zones: parseCustomZones(el.customPowerZonesInput.value, "W").map(zone => ({ name: zone.name, range: `${zone.rangeLabel} W` }))
+      };
+    }
+
+    function zoneAnalysis(activities) {
+      const maxHr = numberOrNull(el.maxHrInput.value);
+      const ftp = numberOrNull(el.ftpInput.value);
+      const customHrDefinitions = parseCustomZones(el.customHrZonesInput.value, "bpm");
+      const customPowerDefinitions = parseCustomZones(el.customPowerZonesInput.value, "W");
+      const hrValues = collectTimedValues(activities, "hr");
+      const powerValues = collectTimedValues(activities, "power");
+      const hr = buildZoneSet({
+        type: "heart_rate",
+        baseline: customHrDefinitions.length ? null : maxHr,
+        unit: "bpm",
+        values: hrValues,
+        definitions: customHrDefinitions.length ? customHrDefinitions : hrZoneDefinitions(maxHr),
+        source: customHrDefinitions.length ? "manual_custom_zones" : "max_hr_input",
+        baselineRequired: !customHrDefinitions.length,
+        missingBaselineNote: "Enter Max HR or manual HR zones to calculate heart-rate zone percentages.",
+        missingDataNote: "No heart-rate stream data found in the selected workout data."
+      });
+      const power = buildZoneSet({
+        type: "power",
+        baseline: customPowerDefinitions.length ? null : ftp,
+        unit: "W",
+        values: powerValues,
+        definitions: customPowerDefinitions.length ? customPowerDefinitions : powerZoneDefinitions(ftp),
+        source: customPowerDefinitions.length ? "manual_custom_zones" : "ftp_input",
+        baselineRequired: !customPowerDefinitions.length,
+        missingBaselineNote: "Enter FTP or manual power zones to calculate power zone percentages.",
+        missingDataNote: "No power stream data found in the selected workout data."
+      });
+      const summaryParts = [];
+      if (hr.available) summaryParts.push("HR zones ready");
+      else if (hrValues.length) summaryParts.push("Add Max HR for HR zones");
+      if (power.available) summaryParts.push("Power zones ready");
+      else if (powerValues.length) summaryParts.push("Add FTP for power zones");
+      return {
+        summary: summaryParts.join(" · ") || "No HR/power stream data",
+        hr,
+        power
+      };
+    }
+
+    function collectTimedValues(activities, key) {
+      const output = [];
+      activities.forEach(activity => {
+        const points = activity.points || [];
+        const fallback = points.length && activity.stats.durationSec ? activity.stats.durationSec / points.length : 1;
+        points.forEach((point, index) => {
+          const value = numberOrNull(point[key]);
+          if (!Number.isFinite(value)) return;
+          const next = points[index + 1];
+          const previous = points[index - 1];
+          let seconds = null;
+          if (point.timestamp && next?.timestamp) seconds = (next.timestamp - point.timestamp) / 1000;
+          if ((!seconds || seconds <= 0) && previous?.timestamp && point.timestamp) seconds = (point.timestamp - previous.timestamp) / 1000;
+          if (!seconds || seconds <= 0 || seconds > 900) seconds = fallback;
+          output.push({ value, seconds });
+        });
+      });
+      return output;
+    }
+
+    function buildZoneSet({ type, baseline, unit, values, definitions, source, baselineRequired, missingBaselineNote, missingDataNote }) {
+      if (!values.length) {
+        return { type, available: false, baseline, unit, source, definitions, distribution: [], note: missingDataNote };
+      }
+      if (baselineRequired && !Number.isFinite(baseline)) {
+        return { type, available: false, baseline: null, unit, source: "not_configured", definitions, distribution: [], note: missingBaselineNote };
+      }
+      if (!definitions.length) {
+        return { type, available: false, baseline, unit, source, definitions, distribution: [], note: "No valid zone definitions found." };
+      }
+      const totalSeconds = values.reduce((sum, item) => sum + item.seconds, 0) || values.length;
+      const distribution = definitions.map(definition => {
+        const seconds = values.reduce((sum, item) => {
+          return item.value >= definition.min && item.value < definition.max ? sum + item.seconds : sum;
+        }, 0);
+        return {
+          name: definition.name,
+          rangeLabel: `${definition.rangeLabel} ${unit}`,
+          min: definition.min,
+          max: Number.isFinite(definition.max) ? definition.max : null,
+          percent_of_baseline: definition.percentLabel,
+          seconds: round(seconds, 0),
+          time: formatDuration(seconds),
+          percent: round((seconds / totalSeconds) * 100, 1),
+          samples: values.filter(item => item.value >= definition.min && item.value < definition.max).length
+        };
+      });
+      return {
+        type,
+        available: true,
+        baseline,
+        unit,
+        source,
+        definitions: definitions.map(definition => ({
+          name: definition.name,
+          range: `${definition.rangeLabel} ${unit}`,
+          percent_of_baseline: definition.percentLabel
+        })),
+        distribution,
+        total_seconds: round(totalSeconds, 0),
+        note: `${type === "power" ? "Power" : "Heart-rate"} zones calculated from ${values.length} stream samples.`
+      };
+    }
+
+    function hrZoneDefinitions(maxHr) {
+      if (!Number.isFinite(maxHr)) return defaultHrZoneDefinitions();
+      return [
+        zoneDefinition("Z1", 0, maxHr * 0.60, "below 60%"),
+        zoneDefinition("Z2", maxHr * 0.60, maxHr * 0.70, "60-70%"),
+        zoneDefinition("Z3", maxHr * 0.70, maxHr * 0.80, "70-80%"),
+        zoneDefinition("Z4", maxHr * 0.80, maxHr * 0.90, "80-90%"),
+        zoneDefinition("Z5", maxHr * 0.90, Infinity, "90%+")
+      ];
+    }
+
+    function defaultHrZoneDefinitions() {
+      return [
+        { name: "Z1", rangeLabel: "below 60% Max HR", percentLabel: "below 60%" },
+        { name: "Z2", rangeLabel: "60-70% Max HR", percentLabel: "60-70%" },
+        { name: "Z3", rangeLabel: "70-80% Max HR", percentLabel: "70-80%" },
+        { name: "Z4", rangeLabel: "80-90% Max HR", percentLabel: "80-90%" },
+        { name: "Z5", rangeLabel: "90%+ Max HR", percentLabel: "90%+" }
+      ];
+    }
+
+    function powerZoneDefinitions(ftp) {
+      if (!Number.isFinite(ftp)) return defaultPowerZoneDefinitions();
+      return [
+        zoneDefinition("Z1", 0, ftp * 0.55, "below 55%"),
+        zoneDefinition("Z2", ftp * 0.55, ftp * 0.75, "55-75%"),
+        zoneDefinition("Z3", ftp * 0.75, ftp * 0.90, "75-90%"),
+        zoneDefinition("Z4", ftp * 0.90, ftp * 1.05, "90-105%"),
+        zoneDefinition("Z5", ftp * 1.05, ftp * 1.20, "105-120%"),
+        zoneDefinition("Z6", ftp * 1.20, ftp * 1.50, "120-150%"),
+        zoneDefinition("Z7", ftp * 1.50, Infinity, "150%+")
+      ];
+    }
+
+    function defaultPowerZoneDefinitions() {
+      return [
+        { name: "Z1", rangeLabel: "below 55% FTP", percentLabel: "below 55%" },
+        { name: "Z2", rangeLabel: "55-75% FTP", percentLabel: "55-75%" },
+        { name: "Z3", rangeLabel: "75-90% FTP", percentLabel: "75-90%" },
+        { name: "Z4", rangeLabel: "90-105% FTP", percentLabel: "90-105%" },
+        { name: "Z5", rangeLabel: "105-120% FTP", percentLabel: "105-120%" },
+        { name: "Z6", rangeLabel: "120-150% FTP", percentLabel: "120-150%" },
+        { name: "Z7", rangeLabel: "150%+ FTP", percentLabel: "150%+" }
+      ];
+    }
+
+    function zoneDefinition(name, min, max, percentLabel) {
+      const roundedMin = Math.round(min);
+      const roundedMax = Number.isFinite(max) ? Math.round(max) : null;
+      return {
+        name,
+        min,
+        max,
+        percentLabel,
+        rangeLabel: roundedMax ? `${roundedMin}-${roundedMax}` : `${roundedMin}+`
+      };
+    }
+
+    function parseCustomZones(text, unit) {
+      return String(text || "")
+        .split(/\r?\n/)
+        .map((line, index) => parseCustomZoneLine(line, index, unit))
+        .filter(Boolean);
+    }
+
+    function parseCustomZoneLine(line, index, unit) {
+      const clean = String(line || "").trim();
+      if (!clean) return null;
+      let name = `Z${index + 1}`;
+      let rangeText = clean;
+      if (clean.includes(":") || clean.includes("=")) {
+        const parts = clean.split(/[:=]/);
+        name = parts.shift().trim() || name;
+        rangeText = parts.join(":").trim();
+      } else {
+        const match = clean.match(/^([A-Za-z]+\s*\d+|Z\d+|Zone\s*\d+)\s+(.+)$/i);
+        if (match) {
+          name = match[1].replace(/\s+/g, "");
+          rangeText = match[2].trim();
+        }
+      }
+      const numbers = (rangeText.match(/\d+(?:[.,]\d+)?/g) || []).map(value => Number(value.replace(",", ".")));
+      if (!numbers.length) return null;
+      const lower = rangeText.toLowerCase();
+      let min = numbers[0];
+      let max = numbers.length > 1 ? numbers[1] : Infinity;
+      if (lower.includes("<") || lower.includes("below") || lower.includes("onder") || (lower.includes("tot") && numbers.length === 1)) {
+        min = 0;
+        max = numbers[0];
+      } else if (lower.includes("+") || lower.includes(">") || lower.includes("boven")) {
+        min = numbers[0];
+        max = Infinity;
+      }
+      if (!Number.isFinite(min) || min < 0) return null;
+      const displayMax = Number.isFinite(max) ? max : null;
+      const inclusiveMax = Number.isFinite(max) ? max + 0.000001 : Infinity;
+      return {
+        name,
+        min,
+        max: inclusiveMax,
+        percentLabel: "manual",
+        rangeLabel: displayMax === null ? `${round(min, 0)}+` : `${round(min, 0)}-${round(displayMax, 0)}`,
+        source_unit: unit
       };
     }
 
@@ -1256,7 +1670,7 @@
         payload.analysis_request.goal ? `My goal: ${payload.analysis_request.goal}` : "",
         payload.analysis_request.notes ? `Context notes: ${payload.analysis_request.notes}` : "",
         "",
-        `Please analyze ${plural ? "these workouts" : "this workout"} using every available field in the data below, including profile, metrics, segments, data quality, and condensed samples. Be specific, separate observations from recommendations, and mention data limitations.`,
+        `Please analyze ${plural ? "these workouts" : "this workout"} using every available field in the data below, including profile, metrics, HR zones, power zones, zone percentages, segments, data quality, and condensed samples. Be specific, separate observations from recommendations, and mention data limitations.`,
         "",
         "Questions to answer:",
         ...questions.map(question => `- ${question}`),
@@ -1282,7 +1696,7 @@
         payload.analysis_request.goal ? `Mijn doel: ${payload.analysis_request.goal}` : "",
         payload.analysis_request.notes ? `Contextnotities: ${payload.analysis_request.notes}` : "",
         "",
-        `Analyseer ${plural ? "deze trainingen" : "deze training"} met alle beschikbare velden hieronder, inclusief profiel, metrics, segmenten, datakwaliteit en samengevatte samples. Wees specifiek, splits observaties en aanbevelingen, en benoem beperkingen in de data.`,
+        `Analyseer ${plural ? "deze trainingen" : "deze training"} met alle beschikbare velden hieronder, inclusief profiel, metrics, HR-zones, power zones, zonepercentages, segmenten, datakwaliteit en samengevatte samples. Wees specifiek, splits observaties en aanbevelingen, en benoem beperkingen in de data.`,
         "",
         "Vragen om te beantwoorden:",
         ...questions.map(question => `- ${question}`),
@@ -1457,11 +1871,12 @@
         ["Avg HR", aggregate.avgHr ? `${round(aggregate.avgHr, 0)} bpm` : "--"],
         ["Avg Power", aggregate.avgPower ? `${round(aggregate.avgPower, 0)} W` : "--"],
         ["Streams", aggregate.pointCount ? `${aggregate.pointCount}` : "summary"]
-      ], 44, 660, 86, 68);
-      drawPdfSection(overview, "Athlete profile", 44, 628);
-      overview.text(`Age: ${profile.age_years || "--"}   Gender: ${profile.gender || "--"}   Height: ${profile.height_cm || "--"} cm   Weight: ${profile.weight_kg || "--"} kg`, 44, 610, 10, "regular", [0.38, 0.44, 0.48]);
-      drawPdfSection(overview, "Workout list", 44, 572);
-      let listY = 552;
+      ], 44, 676, 86, 68);
+      drawPdfSection(overview, "Athlete profile", 44, 602);
+      overview.text(`Age: ${profile.age_years || "--"}   Gender: ${profile.gender || "--"}   Height: ${profile.height_cm || "--"} cm   Weight: ${profile.weight_kg || "--"} kg   Max HR: ${profile.max_heart_rate_bpm || "--"}   FTP: ${profile.ftp_watts || "--"} W`, 44, 584, 9, "regular", [0.38, 0.44, 0.48]);
+      drawPdfZones(overview, zoneAnalysis(activities), 44, 454);
+      drawPdfSection(overview, "Workout list", 44, 398);
+      let listY = 378;
       activities.slice(0, 12).forEach((activity, index) => {
         overview.text(`${index + 1}. ${activity.name}`, 44, listY, 10, "bold");
         overview.text(`${activity.sport}  ${formatDistance(activity.stats.distanceMeters)}  ${formatDuration(activity.stats.durationSec)}  ${formatPaceForActivity(activity)}  ${formatMeters(activity.stats.elevationGain)}`, 44, listY - 14, 9, "regular", [0.38, 0.44, 0.48]);
@@ -1481,15 +1896,16 @@
           ["Elevation", formatMeters(activity.stats.elevationGain)],
           ["Heart rate", activity.stats.avgHr ? `${round(activity.stats.avgHr, 0)} / ${round(activity.stats.maxHr, 0) || "--"} bpm` : "--"],
           ["Power", activity.stats.avgPower ? `${round(activity.stats.avgPower, 0)} W` : "--"]
-        ], 44, 660, 86, 68);
+        ], 44, 676, 86, 68);
 
-        drawRouteTrace(page, activity, 44, 430, 244, 182);
-        drawPdfChart(page, "Pace / speed", activity.points.map(point => point.speed ? point.speed * 3.6 : null), "km/h", 312, 520, 240, 92, [0.89, 0.34, 0.18]);
-        drawPdfChart(page, "Heart rate", activity.points.map(point => point.hr), "bpm", 312, 392, 240, 92, [0.78, 0.24, 0.34]);
-        drawPdfChart(page, "Elevation", activity.points.map(point => point.ele), "m", 312, 264, 240, 92, [0.12, 0.48, 0.55]);
+        drawPdfZones(page, zoneAnalysis([activity]), 44, 484);
+        drawRouteTrace(page, activity, 44, 300, 244, 160);
+        drawPdfChart(page, "Pace / speed", activity.points.map(point => point.speed ? point.speed * 3.6 : null), "km/h", 312, 380, 240, 72, [0.89, 0.34, 0.18]);
+        drawPdfChart(page, "Heart rate", activity.points.map(point => point.hr), "bpm", 312, 286, 240, 72, [0.78, 0.24, 0.34]);
+        drawPdfChart(page, "Elevation", activity.points.map(point => point.ele), "m", 312, 192, 240, 72, [0.12, 0.48, 0.55]);
 
-        drawSegmentTable(page, activity, 44, 224);
-        drawDataQuality(page, activity, 44, 90);
+        drawSegmentTable(page, activity, 44, 158);
+        drawDataQuality(page, activity, 44, 72);
         drawPdfFooter(page, `${index + 1} of ${activities.length}`);
         pages.push(page.output());
       });
@@ -1542,6 +1958,33 @@
     function drawPdfSection(page, label, x, y) {
       page.text(label, x, y, 13, "bold", [0.09, 0.13, 0.15]);
       page.line([[x, y - 8], [552, y - 8]], [0.85, 0.88, 0.90], 1);
+    }
+
+    function drawPdfZones(page, zones, x, y) {
+      drawPdfZoneCard(page, "Heart-rate zones", zones.hr, x, y, 244, [0.78, 0.24, 0.34]);
+      drawPdfZoneCard(page, "Power zones", zones.power, x + 268, y, 244, [0.89, 0.34, 0.18]);
+    }
+
+    function drawPdfZoneCard(page, title, zoneSet, x, y, w, fillColor) {
+      const rows = zoneSet.available ? zoneSet.distribution : zoneSet.definitions;
+      const h = Math.max(78, 26 + rows.length * 10);
+      page.rect(x, y, w, h, [0.98, 0.99, 0.97], [0.85, 0.88, 0.90]);
+      page.text(title, x + 10, y + h - 17, 11, "bold");
+      if (!zoneSet.available) {
+        page.text(zoneSet.note, x + 10, y + h - 34, 8, "regular", [0.38, 0.44, 0.48]);
+        rows.slice(0, 7).forEach((zone, index) => {
+          page.text(`${zone.name}: ${zone.rangeLabel || zone.range}`, x + 10, y + h - 48 - index * 10, 7, "regular", [0.38, 0.44, 0.48]);
+        });
+        return;
+      }
+      rows.forEach((zone, index) => {
+        const rowY = y + h - 36 - index * 10;
+        page.text(`${zone.name}`, x + 10, rowY, 7, "bold", [0.38, 0.44, 0.48]);
+        page.rect(x + 34, rowY - 1, 104, 5, [0.91, 0.93, 0.94], null);
+        page.rect(x + 34, rowY - 1, 104 * ((zone.percent || 0) / 100), 5, fillColor, null);
+        page.text(`${round(zone.percent, 1) || 0}%`, x + 144, rowY, 7, "regular", [0.09, 0.13, 0.15]);
+        page.text(`${zone.time} · ${zone.rangeLabel}`, x + 178, rowY, 6, "regular", [0.38, 0.44, 0.48]);
+      });
     }
 
     function drawRouteTrace(page, activity, x, y, w, h) {
